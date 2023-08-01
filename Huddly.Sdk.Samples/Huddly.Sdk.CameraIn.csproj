@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Huddly.Sdk" Version="1.25.1" />
-    <PackageReference Include="Huddly.Sdk.Extensions" Version="1.25.1" />
+    <PackageReference Include="Huddly.Sdk" Version="1.27.1" />
+    <PackageReference Include="Huddly.Sdk.Extensions" Version="1.27.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
 	<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
   </ItemGroup>

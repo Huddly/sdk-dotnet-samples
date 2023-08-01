@@ -24,24 +24,24 @@ internal class Program
         var huddlySdk = sp.GetRequiredService<ISdk>();
 
         IDevice? lastDevice = null;
-        huddlySdk.DeviceConnected += async (o, d) =>
+        huddlySdk.DeviceConnected += async (o, e) =>
         {
             try
             {
-                lastDevice = d;
+                lastDevice = e.Device;
                 var features = await lastDevice.GetSupportedFeatures();
                 Console.WriteLine(features);
               
-                Console.WriteLine($"Device {d.Id} connected");
+                Console.WriteLine($"Device {lastDevice.Id} connected");
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
             }
         };
-        huddlySdk.DeviceDisconnected += (o, d) =>
+        huddlySdk.DeviceDisconnected += (o, e) =>
         {
-            Console.WriteLine($"Device {d.Id} disconnected");
+            Console.WriteLine($"Device {e.Device.Id} disconnected");
             lastDevice = null;
         };
         var sdkStartTask = huddlySdk.StartMonitoring();
