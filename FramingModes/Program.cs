@@ -28,14 +28,14 @@ internal class Program
         using var huddlySdk = sp.GetRequiredService<ISdk>();
 
         IDevice? lastDevice = null;
-        huddlySdk.DeviceConnected += async (o, d) =>
+        huddlySdk.DeviceConnected += async (o, e) =>
         {
 
-            lastDevice = d;
+            lastDevice = e.Device;
 
             // Get framing mode
-            var getFramingResult = await lastDevice.GetFraming();
-            FramingValue? framing = getFramingResult.IsSuccess ? getFramingResult.Value : null;
+            var getFramingResult = await lastDevice.GetFramingMode();
+            FramingMode? framing = getFramingResult.IsSuccess ? getFramingResult.Value : null;
             Console.WriteLine($"Current framing value: {getFramingResult.Value}");
 
             var supportedFeatures = await lastDevice.GetSupportedFeatures();
@@ -43,22 +43,22 @@ internal class Program
             if (supportedFeatures != null)
             {
                 Console.WriteLine($"Supported framing modes:");
-                foreach (FramingValue supportedFraming in supportedFeatures.Framing)
+                foreach (FramingMode supportedFraming in supportedFeatures.Framing)
                 {
                     Console.WriteLine($"==== {supportedFraming}");
                 }
             }
             
 
-            Console.WriteLine($"Changing framing mode to: {FramingValue.Manual}");
-            var setFramingResult = await lastDevice.SetFraming(FramingValue.Manual);
+            Console.WriteLine($"Changing framing mode to: {FramingMode.Manual}");
+            var setFramingResult = await lastDevice.SetFramingMode(FramingMode.Manual);
             if (setFramingResult.IsSuccess)
             {
                 Console.WriteLine("Succesfully changed framing mode!");
             }
 
-            Console.WriteLine($"Changing framing mode to: {FramingValue.GeniusFraming}");
-            setFramingResult = await lastDevice.SetFraming(FramingValue.GeniusFraming);
+            Console.WriteLine($"Changing framing mode to: {FramingMode.GeniusFraming}");
+            setFramingResult = await lastDevice.SetFramingMode(FramingMode.GeniusFraming);
             if (setFramingResult.IsSuccess)
             {
                 Console.WriteLine("Succesfully changed framing mode!");
@@ -66,9 +66,9 @@ internal class Program
 
             Console.WriteLine("Press any key to quit...");
         };
-        huddlySdk.DeviceDisconnected += (o, d) =>
+        huddlySdk.DeviceDisconnected += (o, e) =>
         {
-            Console.WriteLine($"Device {d.Id} disconnected");
+            Console.WriteLine($"Device {e.Device.Id} disconnected");
             lastDevice = null;
         };
         var sdkStartTask = huddlySdk.StartMonitoring();
