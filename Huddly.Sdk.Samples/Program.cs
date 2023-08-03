@@ -8,7 +8,7 @@ internal class Program
 {
     static async Task Main(string[] args)
     {
-        var ct = new CancellationTokenSource();
+        var cts = new CancellationTokenSource();
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
 

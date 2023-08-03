@@ -27,10 +27,10 @@ internal class Program
         using var huddlySdk = sp.GetRequiredService<ISdk>();
 
         IDevice? lastDevice = null;
-        huddlySdk.DeviceConnected += async (o, d) =>
+        huddlySdk.DeviceConnected += async (o, e) =>
         {
 
-            lastDevice = d;
+            lastDevice = e.Device;
 
             // Properties containing camera info
             string serialNumber = lastDevice.Serial;
@@ -44,9 +44,9 @@ internal class Program
             Console.WriteLine($"Device type {deviceModel} with serial number {serialNumber} and name {deviceName} is manufactured by {manufacturer}.");
             Console.WriteLine("Press any key to quit...");
         };
-        huddlySdk.DeviceDisconnected += (o, d) =>
+        huddlySdk.DeviceDisconnected += (o, e) =>
         {
-            Console.WriteLine($"Device {d.Id} disconnected");
+            Console.WriteLine($"Device {e.Device.Id} disconnected");
             lastDevice = null;
         };
         var sdkStartTask = huddlySdk.StartMonitoring();
