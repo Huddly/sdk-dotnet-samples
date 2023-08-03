@@ -11,10 +11,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FramingModes", "FramingMode
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Detections", "Detections\Detections.csproj", "{44597879-915F-4E81-88E2-18116A021A1A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Huddly.Sdk", "..\sdk-dotnet\src\Huddly.Sdk\Huddly.Sdk.csproj", "{06A5ADD0-5495-4E4C-B87C-BD0E786D38FD}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Huddly.Device.Client.Usb", "..\sdk-dotnet\src\Huddly.Device.Client.Usb\Huddly.Device.Client.Usb.csproj", "{C62C3C6E-5E88-4D0B-BCB3-AF99BA141B12}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,14 +33,6 @@ Global
 		{44597879-915F-4E81-88E2-18116A021A1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{44597879-915F-4E81-88E2-18116A021A1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{44597879-915F-4E81-88E2-18116A021A1A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{06A5ADD0-5495-4E4C-B87C-BD0E786D38FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{06A5ADD0-5495-4E4C-B87C-BD0E786D38FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{06A5ADD0-5495-4E4C-B87C-BD0E786D38FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{06A5ADD0-5495-4E4C-B87C-BD0E786D38FD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C62C3C6E-5E88-4D0B-BCB3-AF99BA141B12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C62C3C6E-5E88-4D0B-BCB3-AF99BA141B12}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C62C3C6E-5E88-4D0B-BCB3-AF99BA141B12}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C62C3C6E-5E88-4D0B-BCB3-AF99BA141B12}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
