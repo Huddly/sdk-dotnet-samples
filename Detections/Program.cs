@@ -1,5 +1,7 @@
-﻿using Huddly.Sdk;
+﻿using Huddly.CameraProto;
+using Huddly.Sdk;
 using Huddly.Sdk.Detectors;
+using Huddly.Sdk.Devices;
 using Huddly.Sdk.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -8,30 +10,39 @@ namespace Detections;
 
 internal class Program
 {
+    static int numDevicesConnected = 0;
     static async Task Main(string[] args)
     {
-        ISet<IDeviceMonitor> monitors = Huddly.Sdk.Monitor.DefaultFor(new NullLoggerFactory(), ConnectionType.USB);
+        ISet<IDeviceMonitor> monitors = Huddly.Sdk.Monitor.DefaultFor(new NullLoggerFactory(), ConnectionType.IP);
 
         // Should always be disposed after use
         ISdk huddlySdk = Sdk.Create(new NullLoggerFactory(), monitors);
 
         var cts = new CancellationTokenSource();
-        huddlySdk.DeviceConnected += (sender, eventArgs) => HandleDeviceConnected(sender, eventArgs, cts.Token);
+        var detectorCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
+        var signal = new SemaphoreSlim(0, 1);
+        huddlySdk.DeviceConnected += (sender, eventArgs) => HandleDeviceConnected(sender, eventArgs, detectorCts.Token, signal);
 
         Console.WriteLine("Press Control+C to quit the sample.");
-        Console.CancelKeyPress += (sender, eventArgs) =>
+        Console.CancelKeyPress += async (sender, eventArgs) =>
         {
-            eventArgs.Cancel = true;
-            cts.Cancel();
             Console.WriteLine("Cancellation requested; will exit.");
+            eventArgs.Cancel = true;
+
+            Console.WriteLine("Tearing down detector");
+            detectorCts.Cancel();
+            await signal.WaitAsync();
+            cts.Cancel();
         };
         Task sdkTask = huddlySdk.StartMonitoring(ct: cts.Token);
         await sdkTask;
         huddlySdk.Dispose();
     }
 
-    private static async void HandleDeviceConnected(object? sender, DeviceConnectionChangeEventArgs eventArgs, CancellationToken ct)
+    private static async void HandleDeviceConnected(object? sender, DeviceConnectionChangeEventArgs eventArgs, CancellationToken ct, SemaphoreSlim signal)
     {
+        if (numDevicesConnected++ > 0)
+            return;
         IDevice device = eventArgs.Device;
         Console.WriteLine($"Device {device} connected");
 
@@ -52,6 +63,6 @@ internal class Program
             }
         }
 
-        detector.Dispose();
+        signal.Release();
     }
 }
