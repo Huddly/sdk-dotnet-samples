@@ -1,6 +1,7 @@
 ﻿using Huddly.Device.Model;
 using Huddly.Sdk;
 using Huddly.Sdk.Extensions;
+using Huddly.Sdk.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -38,7 +39,7 @@ internal class Program
             DeviceModel deviceModel = lastDevice.Model;
 
             // Model name as a string
-            var deviceNameResult = await lastDevice.GetName();
+            Result<string> deviceNameResult = await lastDevice.GetName();
             string deviceName = deviceNameResult.IsSuccess ? deviceNameResult.Value : "Unknown";
 
             Console.WriteLine($"Device type {deviceModel} with serial number {serialNumber} and name {deviceName} is manufactured by {manufacturer}.");
