@@ -1,6 +1,7 @@
 ﻿using Huddly.Device.Model;
 using Huddly.Sdk;
 using Huddly.Sdk.Extensions;
+using Huddly.Sdk.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -9,7 +10,7 @@ internal class Program
 {
     static async Task Main(string[] args)
     {
-        var ct = new CancellationTokenSource();
+        var cts = new CancellationTokenSource();
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
 
@@ -38,7 +39,7 @@ internal class Program
             DeviceModel deviceModel = lastDevice.Model;
 
             // Model name as a string
-            var deviceNameResult = await lastDevice.GetName();
+            Result<string> deviceNameResult = await lastDevice.GetName();
             string deviceName = deviceNameResult.IsSuccess ? deviceNameResult.Value : "Unknown";
 
             Console.WriteLine($"Device type {deviceModel} with serial number {serialNumber} and name {deviceName} is manufactured by {manufacturer}.");
@@ -49,7 +50,7 @@ internal class Program
             Console.WriteLine($"Device {e.Device.Id} disconnected");
             lastDevice = null;
         };
-        var sdkStartTask = huddlySdk.StartMonitoring();
+        
 
         Console.ReadKey();
     }
