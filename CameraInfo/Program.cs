@@ -10,7 +10,7 @@ internal class Program
 {
     static async Task Main(string[] args)
     {
-        var ct = new CancellationTokenSource();
+        var cts = new CancellationTokenSource();
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
 
@@ -50,7 +50,7 @@ internal class Program
             Console.WriteLine($"Device {e.Device.Id} disconnected");
             lastDevice = null;
         };
-        var sdkStartTask = huddlySdk.StartMonitoring();
+        
 
         Console.ReadKey();
     }
