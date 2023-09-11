@@ -17,7 +17,7 @@ internal class Program
         services.AddHuddlySdk(
             configure =>
             {
-                configure.UseUsbGrpcProxyClient();
+                configure.UseUsbGrpcProxyClientDeviceMonitor();
                 configure.UseUsbDeviceMonitor();
             }
         );
