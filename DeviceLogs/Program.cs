@@ -8,10 +8,7 @@ internal class Program
 {
     static async Task Main(string[] args)
     {
-        ISet<IDeviceMonitor> monitors = Huddly.Sdk.Monitor.DefaultFor(
-            new NullLoggerFactory(),
-            ConnectionType.IP
-        );
+        ISet<IDeviceMonitor> monitors = Huddly.Sdk.Monitor.DefaultIP(new NullLoggerFactory());
 
         // Should always be disposed after use
         ISdk huddlySdk = Sdk.Create(new NullLoggerFactory(), monitors);
@@ -23,9 +20,9 @@ internal class Program
             IDevice device = eventArgs.Device;
             Console.WriteLine($"{device.Id} connected");
             await RetrieveDeviceLogs(device, cts.Token);
-
         };
-        huddlySdk.DeviceDisconnected += (sender, eventArgs) => Console.WriteLine($"{eventArgs.Device.Id} disconnected");
+        huddlySdk.DeviceDisconnected += (sender, eventArgs) =>
+            Console.WriteLine($"{eventArgs.Device.Id} disconnected");
 
         var sdkStartTask = huddlySdk.StartMonitoring(ct: cts.Token);
         await sdkStartTask;
@@ -53,4 +50,3 @@ internal class Program
         }
     }
 }
-

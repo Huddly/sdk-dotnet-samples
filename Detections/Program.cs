@@ -9,9 +9,8 @@ internal class Program
 {
     static async Task Main(string[] args)
     {
-        ISet<IDeviceMonitor> monitors = Huddly.Sdk.Monitor.DefaultFor(
-            new NullLoggerFactory(),
-            ConnectionType.IP
+        ISet<IDeviceMonitor> monitors = Huddly.Sdk.Monitor.DefaultIP(
+            new NullLoggerFactory()
         );
 
         // Should always be disposed after use

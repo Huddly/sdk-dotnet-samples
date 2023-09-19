@@ -2,6 +2,7 @@
 using Huddly.Sdk;
 using Huddly.Sdk.Extensions;
 using Huddly.Sdk.Models;
+using Huddly.Sdk.Models.Exceptions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -17,8 +18,20 @@ internal class Program
         services.AddHuddlySdk(
             configure =>
             {
-                configure.UseUsbGrpcProxyClientDeviceMonitor();
-                configure.UseUsbDeviceMonitor();
+                configure.UseUsbDeviceMonitor(monitor =>
+                {
+                    try
+                    {
+                        monitor.UseUsbProxyClient();
+                    }
+                    catch (UnavailableException ex)
+                    {
+                        Console.WriteLine($"Error connecting to USB proxy: {ex.Message}");
+                        Console.WriteLine("Fallback to native USB client.");
+                        monitor.UseUsbNativeClient();
+                    }
+                });
+                configure.UseIpDeviceMonitor();
             }
         );
 

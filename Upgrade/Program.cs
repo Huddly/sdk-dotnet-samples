@@ -13,9 +13,8 @@ internal class Program
 
     static async Task Main(string[] args)
     {
-        ISet<IDeviceMonitor> monitors = Huddly.Sdk.Monitor.DefaultFor(
-            new NullLoggerFactory(),
-            ConnectionType.Usb
+        ISet<IDeviceMonitor> monitors = Huddly.Sdk.Monitor.DefaultUsb(
+            new NullLoggerFactory()
         );
 
         // Should always be disposed after use

@@ -88,8 +88,8 @@ public class UpgradeRunner
         // such, the original Huddly.Sdk.IDevice instance that was used to create the Huddly.Sdk.Upgraders.IFirmwareUpgrader
         // will disconnect. To continue communicating with the device when it has reconnected,
         // consumers should use the new Huddly.Sdk.IDevice instance emitted in the Huddly.Sdk.ISdk.DeviceConnected event
-        bool upgradeSuccess = await deviceUpgrader.Execute(ct);
-        if (!upgradeSuccess)
+        Result upgradeResult = await deviceUpgrader.Execute(ct);
+        if (!upgradeResult.IsSuccess)
         {
             Console.WriteLine("Upgrade failed");
         }
