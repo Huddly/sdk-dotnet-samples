@@ -87,7 +87,7 @@ internal class Program
     {
         var detectorOptions = new DetectorOptions(
             DetectorMode.AlwaysOn,
-            DetectionConvertion.Relative
+            DetectionConvertion.Framing
         );
         Result<IDetector> detectorResult = await device.GetDetector(detectorOptions, ct);
         if (!detectorResult.IsSuccess)

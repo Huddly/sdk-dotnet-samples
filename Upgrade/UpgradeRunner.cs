@@ -42,7 +42,7 @@ public class UpgradeRunner
         bool latestFirmwareIsNewerThanCurrentDeviceVersion = newFirmwareReleaseIsAvailableResult.Value;
         if (!latestFirmwareIsNewerThanCurrentDeviceVersion)
         {
-            Console.WriteLine("Latest firmware release is not greater than the current device firmware. Aborting");
+            Console.WriteLine("Latest firmware release is not greater than the current device firmware. Exiting");
             return;
         }
         Console.WriteLine("Latest firmware release is greater than the current device firmware. Proceeding with upgrade.");
@@ -91,7 +91,7 @@ public class UpgradeRunner
         Result upgradeResult = await deviceUpgrader.Execute(ct);
         if (!upgradeResult.IsSuccess)
         {
-            Console.WriteLine("Upgrade failed");
+            Console.WriteLine($"Upgrade failed: {upgradeResult.Message}");
         }
 
         Console.WriteLine("Successfully upgraded device!");

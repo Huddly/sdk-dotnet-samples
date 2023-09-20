@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace CameraInfo;
 internal class Program
 {
-    static async Task Main(string[] args)
+    static void Main(string[] args)
     {
         var cts = new CancellationTokenSource();
         var services = new ServiceCollection();
