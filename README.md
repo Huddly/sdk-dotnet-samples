@@ -2,6 +2,80 @@
 
 The Huddly SDK is a library for interacting with Huddly devices. This repo contains documentation and common examples for interacting with the Huddly SDK.
 
+## Setup
+
+The Huddly Sdk has two ways of discovering and identifying devices, IP and USB. Which one is appropriate depends on the device. When setting up the Sdk, you need to specify which of these protocols to use: You can use both, or just one of them.
+
+We recommend using dependency injection through the `Huddly.Sdk.Extensions` package for creating an `ISdk` instance.
+
+```csharp
+services
+    .AddHuddlySdk(
+            configure =>
+            {
+                configure.UseUsbDeviceMonitor(monitor =>
+                {
+                    try
+                    {
+                        // Always default to attempt connecting to the USB proxy
+                        monitor.UseUsbProxyClient();
+                    }
+                    catch (UnavailableException)
+                    {
+                        // If failing to connect to the proxy, a native USB connection can be used as a fallback
+                        monitor.UseUsbNativeClient();
+                    }
+                });
+                configure.UseIpDeviceMonitor();
+            }
+        );
+```
+
+Alternatively, if you don't wish to use dependency injection
+
+```csharp
+IDeviceMonitor usbMonitor;
+try
+{
+    // Always default to attempt connecting to the USB proxy
+    usbMonitor = Huddly.Sdk.Monitor.UsbProxyClientDeviceMonitor();
+} catch (UnavailableException)
+{
+    // If failing to connect to the proxy, a native USB connection can be used as a fallback
+    usbMonitor = Huddly.Sdk.Monitor.NativeUsbDeviceMonitor();
+}
+IDeviceMonitor ipMonitor = Huddly.Sdk.Monitor.WsDiscoveryIpDeviceMonitor();
+
+ISdk huddlySdk = Huddly.Sdk.Create(new NullLoggerFactory(), usbMonitor, ipMonitor);
+```
+
+After creating an ISdk instance, add appropriate listeners for device connect/disconnect events:
+
+```csharp
+huddlySdk.DeviceConnected += async (sender, eventArgs) =>
+{
+    Console.WriteLine($"Device {eventArgs.Device.Model} connected");
+}
+
+huddlySdk.DeviceConnected += async (sender, eventArgs) =>
+{
+    Console.WriteLine($"Device {eventArgs.Device.Model} disconnected");
+}
+```
+
+Then start monitoring
+
+```csharp
+CancellationTokenSource cts = new CancellationTokenSource();
+huddlySdk.StartMonitoring(cts.Token)
+```
+
+If you have Huddly devices connected, you should now start getting connection events for them. Note that there can be some delay, particularly for IP devices.
+
+### USB Proxy
+
+The .NET Huddly SDK allows for connecting to USB devices through a proxy. This way, multiple independent processes can talk to a USB device at the same time. When communicating with USB devices, consumers should always default to attempt connecting to this proxy. If this fails, native USB can be used as a fallback. See the above examples for how to do this.
+
 ## Basic device communication
 
 Devices can be interacted with using the `IDevice` interface. To obtain an `IDevice` instance, use the `DeviceConnected` event.
