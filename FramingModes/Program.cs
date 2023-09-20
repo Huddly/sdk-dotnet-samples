@@ -2,13 +2,15 @@
 using Huddly.Sdk;
 using Huddly.Sdk.Extensions;
 using Huddly.Sdk.Models;
+using Huddly.Sdk.Models.Exceptions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace CameraInfo;
+
 internal class Program
 {
-    static async Task Main(string[] args)
+    static void Main(string[] args)
     {
         var cts = new CancellationTokenSource();
         var services = new ServiceCollection();
@@ -17,8 +19,22 @@ internal class Program
         services.AddHuddlySdk(
             configure =>
             {
-                configure.UseUsbGrpcProxyClientDeviceMonitor();
-                configure.UseUsbDeviceMonitor();
+                configure.UseUsbDeviceMonitor(
+                    monitor =>
+                    {
+                        try
+                        {
+                            monitor.UseUsbProxyClient();
+                        }
+                        catch (UnavailableException ex)
+                        {
+                            Console.WriteLine($"Error connecting to USB proxy: {ex.Message}");
+                            Console.WriteLine("Fallback to native USB client.");
+                            monitor.UseUsbNativeClient();
+                        }
+                    }
+                );
+                configure.UseIpDeviceMonitor();
             }
         );
 
@@ -30,7 +46,6 @@ internal class Program
         IDevice? lastDevice = null;
         huddlySdk.DeviceConnected += async (o, e) =>
         {
-
             lastDevice = e.Device;
 
             // Get framing mode
@@ -40,15 +55,11 @@ internal class Program
 
             var supportedFeatures = await lastDevice.GetSupportedFeatures();
 
-            if (supportedFeatures != null)
+            Console.WriteLine($"Supported framing modes:");
+            foreach (FramingMode supportedFraming in supportedFeatures.Framing ?? Enumerable.Empty<FramingMode>())
             {
-                Console.WriteLine($"Supported framing modes:");
-                foreach (FramingMode supportedFraming in supportedFeatures.Framing)
-                {
-                    Console.WriteLine($"==== {supportedFraming}");
-                }
+                Console.WriteLine($"==== {supportedFraming}");
             }
-            
 
             Console.WriteLine($"Changing framing mode to: {FramingMode.Manual}");
             var setFramingResult = await lastDevice.SetFramingMode(FramingMode.Manual);

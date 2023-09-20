@@ -1,6 +1,9 @@
 ﻿using Huddly.Sdk;
 using Huddly.Sdk.Detectors;
 using Huddly.Sdk.Models;
+using Huddly.Sdk.Models.Exceptions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Detections;
@@ -9,16 +12,35 @@ internal class Program
 {
     static async Task Main(string[] args)
     {
-        ISet<IDeviceMonitor> monitors = Huddly.Sdk.Monitor.DefaultFor(
-            new NullLoggerFactory(),
-            ConnectionType.IP
+        var services = new ServiceCollection();
+        services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
+
+        services.AddHuddlySdk(
+            configure =>
+            {
+                configure.UseUsbDeviceMonitor(monitor =>
+                {
+                    try
+                    {
+                        monitor.UseUsbProxyClient();
+                    }
+                    catch (UnavailableException ex)
+                    {
+                        Console.WriteLine($"Error connecting to USB proxy: {ex.Message}");
+                        Console.WriteLine("Fallback to native USB client.");
+                        monitor.UseUsbNativeClient();
+                    }
+                });
+                configure.UseIpDeviceMonitor();
+            }
         );
 
+        var sp = services.BuildServiceProvider();
+
         // Should always be disposed after use
-        ISdk huddlySdk = Sdk.Create(new NullLoggerFactory(), monitors);
+        using var huddlySdk = sp.GetRequiredService<ISdk>();
 
         var cts = new CancellationTokenSource();
-
         // Create a separate cts specifically for cancelling detectors.
         var detectorCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
         // For signalling when detectors have been disposed properly
@@ -65,7 +87,7 @@ internal class Program
     {
         var detectorOptions = new DetectorOptions(
             DetectorMode.AlwaysOn,
-            DetectionConvertion.Relative
+            DetectionConvertion.Framing
         );
         Result<IDetector> detectorResult = await device.GetDetector(detectorOptions, ct);
         if (!detectorResult.IsSuccess)
