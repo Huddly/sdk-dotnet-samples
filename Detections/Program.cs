@@ -85,10 +85,9 @@ internal class Program
 
     private static async Task ConsumeDetections(IDevice device, CancellationToken ct)
     {
-        var detectorOptions = new DetectorOptions(
-            DetectorMode.AlwaysOn,
-            DetectionConvertion.Framing
-        );
+        DetectorOptions detectorOptions = DetectorOptions.DefaultFor(device.Model);
+        detectorOptions.Mode = DetectorMode.AlwaysOn;
+
         Result<IDetector> detectorResult = await device.GetDetector(detectorOptions, ct);
         if (!detectorResult.IsSuccess)
         {
