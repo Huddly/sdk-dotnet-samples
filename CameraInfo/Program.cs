@@ -63,8 +63,8 @@ internal class Program
             Console.WriteLine($"Device {e.Device.Id} disconnected");
             lastDevice = null;
         };
-        
 
+        huddlySdk.StartMonitoring();
         Console.ReadKey();
     }
 }
