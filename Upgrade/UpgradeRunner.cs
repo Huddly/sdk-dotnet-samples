@@ -92,6 +92,7 @@ public class UpgradeRunner
         if (!upgradeResult.IsSuccess)
         {
             Console.WriteLine($"Upgrade failed: {upgradeResult.Message}");
+            return;
         }
 
         Console.WriteLine("Successfully upgraded device!");
