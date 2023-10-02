@@ -15,21 +15,7 @@ internal class Program
         services.AddHuddlySdk(
             configure =>
             {
-                configure.UseUsbDeviceMonitor(
-                    monitor =>
-                    {
-                        try
-                        {
-                            monitor.UseUsbProxyClient();
-                        }
-                        catch (UnavailableException ex)
-                        {
-                            Console.WriteLine($"Error connecting to USB proxy: {ex.Message}");
-                            Console.WriteLine("Fallback to native USB client.");
-                            monitor.UseUsbNativeClient();
-                        }
-                    }
-                );
+                configure.UseUsbDeviceMonitor();
                 configure.UseIpDeviceMonitor();
             }
         );

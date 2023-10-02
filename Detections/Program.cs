@@ -18,19 +18,7 @@ internal class Program
         services.AddHuddlySdk(
             configure =>
             {
-                configure.UseUsbDeviceMonitor(monitor =>
-                {
-                    try
-                    {
-                        monitor.UseUsbProxyClient();
-                    }
-                    catch (UnavailableException ex)
-                    {
-                        Console.WriteLine($"Error connecting to USB proxy: {ex.Message}");
-                        Console.WriteLine("Fallback to native USB client.");
-                        monitor.UseUsbNativeClient();
-                    }
-                });
+                configure.UseUsbDeviceMonitor();
                 configure.UseIpDeviceMonitor();
             }
         );
@@ -96,15 +84,22 @@ internal class Program
         }
 
         IDetector detector = detectorResult.Value;
-        // This loop will continue indefinitely until either:
-        // 1. The token passed to GetDetections is cancelled.
-        // 2. The detector is disposed.
-        // Note that the IAsyncEnumerable returned by GetDetections does not throw in either of these cases.
-        await foreach (Huddly.Sdk.Models.Detections detections in detector.GetDetections(ct))
+        try
         {
-            int personBoxCount = detections.Count(detection => detection.Label == "person");
-            int headBoxCount = detections.Count(detection => detection.Label == "head");
-            Console.WriteLine($"Received detections with {personBoxCount} person boxes and {headBoxCount} head boxes");
+            // This loop will continue indefinitely until either:
+            // 1. The token passed to GetDetections is cancelled.
+            // 2. The detector is disposed.
+            // Note that the IAsyncEnumerable returned by GetDetections does not throw in either of these cases.
+            await foreach (Huddly.Sdk.Models.Detections detections in detector.GetDetections(ct))
+            {
+                int personBoxCount = detections.Count(detection => detection.Label == "person");
+                int headBoxCount = detections.Count(detection => detection.Label == "head");
+                Console.WriteLine($"Received detections with {personBoxCount} person boxes and {headBoxCount} head boxes");
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Detector threw exception: {e.Message}");
         }
         // Always dispose the detector properly after use.
         // This should be completed before disposing/cancelling the ISdk from which the detector has been derived.
