@@ -7,10 +7,6 @@ namespace Upgrade;
 
 internal class Program
 {
-    // For a robust implementation this collection should really be thread safe,
-    // but this approach is used to keep the example simple
-    private static readonly ISet<string> devicesCurrentlyUnderUpgrade = new HashSet<string>();
-
     static async Task Main(string[] args)
     {
         var services = new ServiceCollection();
@@ -19,19 +15,21 @@ internal class Program
         services.AddHuddlySdk(
             configure =>
             {
-                configure.UseUsbDeviceMonitor(monitor =>
-                {
-                    try
+                configure.UseUsbDeviceMonitor(
+                    monitor =>
                     {
-                        monitor.UseUsbProxyClient();
+                        try
+                        {
+                            monitor.UseUsbProxyClient();
+                        }
+                        catch (UnavailableException ex)
+                        {
+                            Console.WriteLine($"Error connecting to USB proxy: {ex.Message}");
+                            Console.WriteLine("Fallback to native USB client.");
+                            monitor.UseUsbNativeClient();
+                        }
                     }
-                    catch (UnavailableException ex)
-                    {
-                        Console.WriteLine($"Error connecting to USB proxy: {ex.Message}");
-                        Console.WriteLine("Fallback to native USB client.");
-                        monitor.UseUsbNativeClient();
-                    }
-                });
+                );
                 configure.UseIpDeviceMonitor();
             }
         );
@@ -43,26 +41,26 @@ internal class Program
 
         var cts = new CancellationTokenSource();
 
+        int numDevicesConnected = 0;
         huddlySdk.DeviceConnected += async (sender, eventArgs) =>
         {
-            IDevice device = eventArgs.Device;
-            Console.WriteLine($"{device.Id} connected");
-            if (devicesCurrentlyUnderUpgrade.Contains(device.Id))
+            if (numDevicesConnected++ > 0)
             {
                 Console.WriteLine(
-                    $"Device {device.Id} is currently being upgraded. Discarding device connected event"
+                    "Only running upgrade for the first device connected. Discarding connection event."
                 );
                 return;
             }
-            devicesCurrentlyUnderUpgrade.Add(device.Id);
-            await UpgradeRunner.UpgradeDeviceIfNewVersionIsAvailable(
-                eventArgs.Device,
-                cts.Token
-            );
-            devicesCurrentlyUnderUpgrade.Remove(device.Id);
+
+            IDevice device = eventArgs.Device;
+            Console.WriteLine($"{device.Id} connected");
+
+            await UpgradeRunner.UpgradeDeviceIfNewVersionIsAvailable(eventArgs.Device, cts.Token);
         };
 
-        Console.WriteLine("Press Control+C to quit the sample. Note: Cancelling an ongoing upgrade is not recommended.");
+        Console.WriteLine(
+            "Press Control+C to quit the sample. Note: Cancelling an ongoing upgrade is not recommended."
+        );
         Console.CancelKeyPress += (sender, eventArgs) =>
         {
             Console.WriteLine("Cancellation requested; will exit.");
