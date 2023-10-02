@@ -13,19 +13,7 @@ services
     .AddHuddlySdk(
             configure =>
             {
-                configure.UseUsbDeviceMonitor(monitor =>
-                {
-                    try
-                    {
-                        // Always default to attempt connecting to the USB proxy
-                        monitor.UseUsbProxyClient();
-                    }
-                    catch (UnavailableException)
-                    {
-                        // If failing to connect to the proxy, a native USB connection can be used as a fallback
-                        monitor.UseUsbNativeClient();
-                    }
-                });
+                configure.UseUsbDeviceMonitor();
                 configure.UseIpDeviceMonitor();
             }
         );

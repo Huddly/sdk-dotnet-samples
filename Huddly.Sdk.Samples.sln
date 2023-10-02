@@ -10,7 +10,13 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Detections", "Detections\Detections.csproj", "{44597879-915F-4E81-88E2-18116A021A1A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Upgrade", "Upgrade\Upgrade.csproj", "{ADE280C9-7D12-4776-B861-5767628C731A}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceLogs", "DeviceLogs\DeviceLogs.csproj", "{A29A34E5-0ED4-4298-A03E-65BF3729745A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E74F5C36-FE0D-4E97-9F45-3C1B01240D80}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
