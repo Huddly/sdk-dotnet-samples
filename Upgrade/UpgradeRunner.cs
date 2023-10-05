@@ -73,28 +73,42 @@ public class UpgradeRunner
             Console.WriteLine("Firmware downloaded sucessfully.");
         }
 
-        IFirmwareUpgrader deviceUpgrader = await device.GetFirmwareUpgrader(firmwareFilePath, ct);
-        // Subscribe to this event before Executing the upgrade to see upgrade progress.
-        deviceUpgrader.ProgressUpdated += (sender, e) =>
-            Console.WriteLine(
-                $"Upgrading device. Current state: {e.State}, progress: {e.ProgressPercent}"
-            );
-
-        Console.WriteLine("Starting device upgrade.");
-        // When a firmware upgrade is run, the device will typically become non-responsive
-        // for other methods. It is recommended to cease all other communication with the
-        // device before executing an upgrade.
-        // In the course of an upgrade, a device will disconnect and reconnect again. As
-        // such, the original Huddly.Sdk.IDevice instance that was used to create the Huddly.Sdk.Upgraders.IFirmwareUpgrader
-        // will disconnect. To continue communicating with the device when it has reconnected,
-        // consumers should use the new Huddly.Sdk.IDevice instance emitted in the Huddly.Sdk.ISdk.DeviceConnected event
-        Result upgradeResult = await deviceUpgrader.Execute(ct);
-        if (!upgradeResult.IsSuccess)
+        try
         {
-            Console.WriteLine($"Upgrade failed: {upgradeResult.Message}");
-            return;
-        }
+            IFirmwareUpgrader deviceUpgrader = await device.GetFirmwareUpgrader(firmwareFilePath, ct);
+            // Subscribe to this event before Executing the upgrade to see upgrade progress.
+            deviceUpgrader.ProgressUpdated += (sender, e) =>
+                Console.WriteLine(
+                    $"Upgrading device. Current state: {e.State}, progress: {e.ProgressPercent}"
+                );
 
-        Console.WriteLine("Successfully upgraded device!");
+            Console.WriteLine("Starting device upgrade.");
+            // When a firmware upgrade is run, the device will typically become non-responsive
+            // for other methods. It is recommended to cease all other communication with the
+            // device before executing an upgrade.
+            // In the course of an upgrade, a device will disconnect and reconnect again. As
+            // such, the original Huddly.Sdk.IDevice instance that was used to create the Huddly.Sdk.Upgraders.IFirmwareUpgrader
+            // will disconnect. To continue communicating with the device when it has reconnected,
+            // consumers should use the new Huddly.Sdk.IDevice instance emitted in the Huddly.Sdk.ISdk.DeviceConnected event
+            Result upgradeResult = await deviceUpgrader.Execute(ct);
+            if (!upgradeResult.IsSuccess)
+            {
+                Console.WriteLine($"Upgrade failed: {upgradeResult.Message}");
+                return;
+            }
+
+            Console.WriteLine("Successfully upgraded device!");
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(firmwareFilePath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed deleting temporary firmware file: {ex.Message}");
+            }
+        }
     }
 }
