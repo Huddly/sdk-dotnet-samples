@@ -22,16 +22,7 @@ services
 Alternatively, if you don't wish to use dependency injection
 
 ```csharp
-IDeviceMonitor usbMonitor;
-try
-{
-    // Always default to attempt connecting to the USB proxy
-    usbMonitor = Huddly.Sdk.Monitor.UsbProxyClientDeviceMonitor();
-} catch (UnavailableException)
-{
-    // If failing to connect to the proxy, a native USB connection can be used as a fallback
-    usbMonitor = Huddly.Sdk.Monitor.NativeUsbDeviceMonitor();
-}
+IDeviceMonitor usbMonitor = Huddly.Sdk.Monitor.UsbAutoProxyClientDeviceMonitor();
 IDeviceMonitor ipMonitor = Huddly.Sdk.Monitor.WsDiscoveryIpDeviceMonitor();
 
 ISdk huddlySdk = Huddly.Sdk.Create(new NullLoggerFactory(), usbMonitor, ipMonitor);
