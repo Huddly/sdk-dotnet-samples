@@ -94,3 +94,15 @@ else
   // Handle error
 }
 ```
+
+Alternatively, if you prefer an exception based control flow, you can force the `Result` type to throw if the operation was not successful:
+
+```csharp
+Result result = await device.SetFramingMode(FramingMode.SpeakerFraming);
+result.ThrowIfError();
+```
+
+```csharp
+Result<FramingMode> result = await device.GetFramingMode(FramingMode.SpeakerFraming);
+FramingMode currentFramingMode = result.GetValueOrThrow();
+```
