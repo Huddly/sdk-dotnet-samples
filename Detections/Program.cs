@@ -1,16 +1,14 @@
 ﻿using Huddly.Sdk;
 using Huddly.Sdk.Detectors;
 using Huddly.Sdk.Models;
-using Huddly.Sdk.Models.Exceptions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Detections;
 
 internal class Program
 {
-    static async Task Main(string[] args)
+    static async Task Main(string[] _)
     {
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
@@ -56,7 +54,7 @@ internal class Program
     }
 
     private static async void HandleDeviceConnected(
-        object? sender,
+        object? _,
         DeviceConnectionChangeEventArgs eventArgs,
         CancellationToken ct,
         SemaphoreSlim signal

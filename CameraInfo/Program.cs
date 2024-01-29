@@ -1,6 +1,5 @@
 ﻿using Huddly.Device.Model;
 using Huddly.Sdk;
-using Huddly.Sdk.Devices;
 using Huddly.Sdk.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -9,7 +8,7 @@ namespace CameraInfo;
 
 internal class Program
 {
-    static void Main(string[] args)
+    static void Main(string[] _)
     {
         var cts = new CancellationTokenSource();
         var services = new ServiceCollection();
@@ -45,19 +44,8 @@ internal class Program
             );
 
             // Device firmware version
-            if (lastDevice.Model != DeviceModel.UsbAdapter)
-            {
-                var fwVersion = (await lastDevice.GetFwVersion()).Value;
-                Console.WriteLine($"Device firmware version: {fwVersion?.ToString() ?? "unknown"}");
-            }
-            // USB adapter firmware version
-            if (lastDevice is UsbAdapterDevice usbAdapterDevice)
-            {
-                var usbAdapterFwVersion = (await usbAdapterDevice.GetUsbAdapterFwVersion()).Value;
-                Console.WriteLine(
-                    $"USB adapter firmware version: {usbAdapterFwVersion?.ToString() ?? "unknown"}"
-                );
-            }
+            var fwVersion = (await lastDevice.GetFirmwareVersion()).Value;
+            Console.WriteLine($"Device firmware version: {fwVersion?.ToString() ?? "unknown"}");
 
             Console.WriteLine("Press any key to quit...");
         };

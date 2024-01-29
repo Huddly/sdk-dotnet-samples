@@ -12,35 +12,32 @@ public class UpgradeRunner
     )
     {
         // Get information on the latest available release for the device
-        Result<FirmwareInfo> firmwareReleaseInfoResult = await device.GetLatestFirmwareReleaseInfo(
+        Result<RemoteFirmwareInfo> remoteFirmwareInfoResult = await device.FirmwareChecker.GetLatestRemoteVersion(
             FirmwareChannel.Stable,
             ct
         );
-        if (!firmwareReleaseInfoResult.IsSuccess)
+        if (!remoteFirmwareInfoResult.IsSuccess)
         {
-            string errorMessage = firmwareReleaseInfoResult.Message;
-            Console.WriteLine($"Failed retrieving firmware release info: {errorMessage}. Aborting.");
+            string errorMessage = remoteFirmwareInfoResult.Message;
+            Console.WriteLine($"Failed retrieving latest firmware version: {errorMessage}. Aborting.");
             return;
         }
-        FirmwareInfo firmwareReleaseInfo = firmwareReleaseInfoResult.Value;
-        Console.WriteLine($"Latest available firmware release is version {firmwareReleaseInfo.Version}");
+        RemoteFirmwareInfo remoteFirmwareInfo = remoteFirmwareInfoResult.Value;
+        Console.WriteLine($"Latest available firmware release is version {remoteFirmwareInfo.FirmwareVersion}");
 
         // Check if the latest firmware is greater than the current device version
         // This step is optional: Upgrades can be performed to any version.
-        Result<bool> newFirmwareReleaseIsAvailableResult = await device.IsGreaterThanCurrentVersion(
-            firmwareReleaseInfo,
-            ct
-        );
-        if (!newFirmwareReleaseIsAvailableResult.IsSuccess)
+        Result<FirmwareVersion> deviceFirmwareVersionResult = await device.GetFirmwareVersion(ct);
+        if (!deviceFirmwareVersionResult.IsSuccess)
         {
-            string errorMessage = firmwareReleaseInfoResult.Message;
+            string errorMessage = deviceFirmwareVersionResult.Message;
             Console.WriteLine(
-                $"Failed checking if latest firmware is greater than the current device version: {errorMessage}. Aborting."
+                $"Failed retrieving device firmware version: {errorMessage}. Aborting."
             );
             return;
         }
-        bool latestFirmwareIsNewerThanCurrentDeviceVersion = newFirmwareReleaseIsAvailableResult.Value;
-        if (!latestFirmwareIsNewerThanCurrentDeviceVersion)
+        FirmwareVersion deviceFirmwareVersion = deviceFirmwareVersionResult.Value;
+        if (deviceFirmwareVersion >= remoteFirmwareInfo.FirmwareVersion)
         {
             Console.WriteLine("Latest firmware release is not greater than the current device firmware. Exiting");
             return;
@@ -49,7 +46,7 @@ public class UpgradeRunner
         
         HttpClient httpClient = new HttpClient();
         using HttpResponseMessage response = await httpClient.GetAsync(
-            firmwareReleaseInfo.Url,
+            remoteFirmwareInfo.DownloadUrl,
             HttpCompletionOption.ResponseHeadersRead,
             ct
         );
@@ -69,7 +66,7 @@ public class UpgradeRunner
         )
         {
             Console.WriteLine("Downloading latest firmware from web server...");
-            await response.Content.CopyToAsync(fileStream);
+            await response.Content.CopyToAsync(fileStream, ct);
             Console.WriteLine("Firmware downloaded sucessfully.");
         }
 

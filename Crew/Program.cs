@@ -1,6 +1,5 @@
 ﻿using Huddly.Device.Model;
 using Huddly.Sdk;
-using Huddly.Sdk.Devices;
 using Huddly.Sdk.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -9,7 +8,7 @@ namespace Crew
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static void Main(string[] _)
         {
             var cts = new CancellationTokenSource();
             var services = new ServiceCollection();
