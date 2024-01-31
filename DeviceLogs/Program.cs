@@ -2,13 +2,12 @@
 using Huddly.Sdk;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Huddly.Sdk.Models.Exceptions;
 
 namespace DeviceLogs;
 
 internal class Program
 {
-    static async Task Main(string[] args)
+    static async Task Main(string[] _)
     {
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
