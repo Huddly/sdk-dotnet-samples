@@ -44,7 +44,7 @@ internal class Program
             );
 
             // Device firmware version
-            var fwVersion = (await lastDevice.GetFirmwareVersion()).GetValueOrThrow();
+            FirmwareVersion fwVersion = (await lastDevice.GetFirmwareVersion()).GetValueOrThrow();
             Console.WriteLine($"Device firmware version: {fwVersion?.ToString() ?? "unknown"}");
 
             Console.WriteLine("Press any key to quit...");
