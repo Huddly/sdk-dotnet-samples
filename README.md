@@ -82,7 +82,7 @@ else
 For operations where a value is included, Result<T> is used. Note that the contained value is safe to use if and only if the Result<T> was successful.
 
 ```csharp
-Result<FramingMode> result = await device.GetFramingMode(FramingMode.SpeakerFraming);
+Result<FramingMode> result = await device.GetFramingMode();
 if (result.IsSuccess)
 {
   // Operation was successful and we can safely retrieve the contained value
@@ -103,6 +103,6 @@ result.ThrowIfError();
 ```
 
 ```csharp
-Result<FramingMode> result = await device.GetFramingMode(FramingMode.SpeakerFraming);
+Result<FramingMode> result = await device.GetFramingMode();
 FramingMode currentFramingMode = result.GetValueOrThrow();
 ```
