@@ -22,10 +22,16 @@ services
 Alternatively, if you don't wish to use dependency injection
 
 ```csharp
-IDeviceMonitor usbMonitor = Huddly.Sdk.Monitor.UsbAutoProxyClientDeviceMonitor();
-IDeviceMonitor ipMonitor = Huddly.Sdk.Monitor.WsDiscoveryIpDeviceMonitor();
+using ISdk huddlySdk = Huddly.Sdk.Sdk.CreateDefault(new NullLoggerFactory());
+```
 
-ISdk huddlySdk = Huddly.Sdk.Create(new NullLoggerFactory(), usbMonitor, ipMonitor);
+or
+
+```csharp
+var usbMonitor = Huddly.Sdk.Monitor.UsbProxyClientDeviceMonitor();
+var ipMonitor = Huddly.Sdk.Monitor.WsDiscoveryIpDeviceMonitor();
+
+using var huddlySdk = new Sdk(new NullLoggerFactory(), [usbMonitor, ipMonitor]);
 ```
 
 After creating an ISdk instance, add appropriate listeners for device connect/disconnect events:
