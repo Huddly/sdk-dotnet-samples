@@ -28,13 +28,13 @@ internal class Program
             lastDevice = e.Device;
 
             // Properties containing camera info
-            string serialNumber = lastDevice.Serial;
+            var serialNumber = lastDevice.Serial;
             var manufacturer = lastDevice.Manufacturer;
             var deviceModel = lastDevice.Model;
 
             // Model name as a string
-            var deviceNameResult = await lastDevice.GetName();
-            string deviceName = deviceNameResult.IsSuccess ? deviceNameResult.Value : "Unknown";
+            var deviceNameResult = await lastDevice.GetName(cts.Token);
+            var deviceName = deviceNameResult.IsSuccess ? deviceNameResult.Value : "Unknown";
 
             Console.WriteLine(
                 $"Device type {deviceModel} with serial number {serialNumber} and name {deviceName} is manufactured by {manufacturer}."

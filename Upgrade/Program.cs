@@ -23,7 +23,7 @@ internal class Program
         using var huddlySdk = sp.GetRequiredService<ISdk>();
         var cts = new CancellationTokenSource();
 
-        int numDevicesConnected = 0;
+        var numDevicesConnected = 0;
         huddlySdk.DeviceConnected += async (sender, eventArgs) =>
         {
             if (numDevicesConnected++ > 0)

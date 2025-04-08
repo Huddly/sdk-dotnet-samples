@@ -1,6 +1,5 @@
 ﻿using Huddly.Device.Model;
 using Huddly.Sdk;
-using Huddly.Sdk.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -49,7 +48,7 @@ internal class Program
             }
             var crewCameraStatuses = connectedCamerasResult.Value;
             Console.WriteLine($"Crew system with the following cameras connected:");
-            foreach (CameraStatus cameraStatus in crewCameraStatuses)
+            foreach (var cameraStatus in crewCameraStatuses)
             {
                 Console.WriteLine(
                     $"\tSerial: {cameraStatus.Serial}, Type: {cameraStatus.Type}, "

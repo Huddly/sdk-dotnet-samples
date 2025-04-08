@@ -37,7 +37,7 @@ internal class Program
 
             Console.WriteLine($"Supported framing modes:");
             foreach (
-                FramingMode supportedFraming in supportedFeatures.Value?.Framing
+                var supportedFraming in supportedFeatures.Value?.Framing
                     ?? Enumerable.Empty<FramingMode>()
             )
             {

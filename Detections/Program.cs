@@ -86,8 +86,8 @@ internal class Program
             // Note that the IAsyncEnumerable returned by GetDetections does not throw in either of these cases.
             await foreach (Huddly.Sdk.Models.Detections detections in detector.GetDetections(ct))
             {
-                int personBoxCount = detections.Count(detection => detection.Label == "person");
-                int headBoxCount = detections.Count(detection => detection.Label == "head");
+                var personBoxCount = detections.Count(detection => detection.Label == "person");
+                var headBoxCount = detections.Count(detection => detection.Label == "head");
                 Console.WriteLine(
                     $"Received detections with {personBoxCount} person boxes and {headBoxCount} head boxes"
                 );
