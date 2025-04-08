@@ -3,7 +3,7 @@ using Huddly.Sdk.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace CameraInfo;
+namespace FramingModes;
 
 internal class Program
 {
