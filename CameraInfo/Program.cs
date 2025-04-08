@@ -1,6 +1,4 @@
-﻿using Huddly.Device.Model;
-using Huddly.Sdk;
-using Huddly.Sdk.Models;
+﻿using Huddly.Sdk;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -32,11 +30,11 @@ internal class Program
 
             // Properties containing camera info
             string serialNumber = lastDevice.Serial;
-            Manufacturer manufacturer = lastDevice.Manufacturer;
-            DeviceModel deviceModel = lastDevice.Model;
+            var manufacturer = lastDevice.Manufacturer;
+            var deviceModel = lastDevice.Model;
 
             // Model name as a string
-            Result<string> deviceNameResult = await lastDevice.GetName();
+            var deviceNameResult = await lastDevice.GetName();
             string deviceName = deviceNameResult.IsSuccess ? deviceNameResult.Value : "Unknown";
 
             Console.WriteLine(
@@ -44,7 +42,7 @@ internal class Program
             );
 
             // Device firmware version
-            FirmwareVersion fwVersion = (await lastDevice.GetFirmwareVersion()).GetValueOrThrow();
+            var fwVersion = (await lastDevice.GetFirmwareVersion()).GetValueOrThrow();
             Console.WriteLine($"Device firmware version: {fwVersion?.ToString() ?? "unknown"}");
 
             Console.WriteLine("Press any key to quit...");

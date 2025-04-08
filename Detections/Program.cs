@@ -48,7 +48,7 @@ internal class Program
             // Only after the detectors have been disposed do we cancel/dispose the sdk.
             cts.Cancel();
         };
-        Task sdkTask = huddlySdk.StartMonitoring(ct: cts.Token);
+        var sdkTask = huddlySdk.StartMonitoring(ct: cts.Token);
         await sdkTask;
         huddlySdk.Dispose();
     }
@@ -60,7 +60,7 @@ internal class Program
         SemaphoreSlim signal
     )
     {
-        IDevice device = eventArgs.Device;
+        var device = eventArgs.Device;
         Console.WriteLine($"Device {device} connected");
 
         await signal.WaitAsync();
@@ -71,17 +71,17 @@ internal class Program
 
     private static async Task ConsumeDetections(IDevice device, CancellationToken ct)
     {
-        DetectorOptions detectorOptions = DetectorOptions.DefaultFor(device.Model);
+        var detectorOptions = DetectorOptions.DefaultFor(device.Model);
         detectorOptions.Mode = DetectorMode.AlwaysOn;
 
-        Result<IDetector> detectorResult = await device.GetDetector(detectorOptions, ct);
+        var detectorResult = await device.GetDetector(detectorOptions, ct);
         if (!detectorResult.IsSuccess)
         {
             Console.WriteLine($"Could not create detector: {detectorResult.Message}");
             return;
         }
 
-        IDetector detector = detectorResult.Value;
+        var detector = detectorResult.Value;
         try
         {
             // This loop will continue indefinitely until either:

@@ -39,14 +39,14 @@ namespace Crew
 
                 lastDevice = e.Device;
 
-                IMultiCameraDevice crewDevice = (IMultiCameraDevice)e.Device;
-                Result<IList<CameraStatus>> connectedCamerasResult = await crewDevice.GetConnectedCameras();
+                var crewDevice = (IMultiCameraDevice)e.Device;
+                var connectedCamerasResult = await crewDevice.GetConnectedCameras();
                 if (!connectedCamerasResult.IsSuccess)
                 {
                     Console.WriteLine($"Failed getting connected cameras: {connectedCamerasResult.Message}");
                     return;
                 }
-                IList<CameraStatus> crewCameraStatuses = connectedCamerasResult.Value;
+                var crewCameraStatuses = connectedCamerasResult.Value;
                 Console.WriteLine($"Crew system with the following cameras connected:");
                 foreach (CameraStatus cameraStatus in crewCameraStatuses)
                 {

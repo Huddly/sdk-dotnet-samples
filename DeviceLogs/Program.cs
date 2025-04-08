@@ -1,5 +1,4 @@
-﻿using Huddly.Sdk.Models;
-using Huddly.Sdk;
+﻿using Huddly.Sdk;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -45,9 +44,9 @@ internal class Program
     static async Task RetrieveDeviceLogs(IDevice device, CancellationToken ct)
     {
         // Device logs can be written to any stream. Here we use the console output.
-        Stream outputStream = Console.OpenStandardOutput();
+        var outputStream = Console.OpenStandardOutput();
         Console.WriteLine($"---------- BEGIN DEVICE LOG FOR {device.Id} ---------- ");
-        Result getLogResult = await device.GetLog(outputStream, ct);
+        var getLogResult = await device.GetLog(outputStream, ct);
         Console.WriteLine($"---------- END DEVICE LOG FOR {device.Id} ---------- ");
 
         if (getLogResult.IsSuccess)

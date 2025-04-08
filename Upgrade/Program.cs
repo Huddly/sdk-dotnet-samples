@@ -52,7 +52,7 @@ internal class Program
             eventArgs.Cancel = true;
             cts.Cancel();
         };
-        Task sdkTask = huddlySdk.StartMonitoring(ct: cts.Token);
+        var sdkTask = huddlySdk.StartMonitoring(ct: cts.Token);
         await sdkTask;
         huddlySdk.Dispose();
     }
