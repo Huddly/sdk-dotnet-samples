@@ -8,7 +8,6 @@ internal class Program
 {
     static void Main(string[] _)
     {
-        var cts = new CancellationTokenSource();
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
 

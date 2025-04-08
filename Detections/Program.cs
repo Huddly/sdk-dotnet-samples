@@ -13,13 +13,11 @@ internal class Program
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
 
-        services.AddHuddlySdk(
-            configure =>
-            {
-                configure.UseUsbDeviceMonitor();
-                configure.UseIpDeviceMonitor();
-            }
-        );
+        services.AddHuddlySdk(configure =>
+        {
+            configure.UseUsbDeviceMonitor();
+            configure.UseIpDeviceMonitor();
+        });
 
         var sp = services.BuildServiceProvider();
 
@@ -91,7 +89,9 @@ internal class Program
             {
                 int personBoxCount = detections.Count(detection => detection.Label == "person");
                 int headBoxCount = detections.Count(detection => detection.Label == "head");
-                Console.WriteLine($"Received detections with {personBoxCount} person boxes and {headBoxCount} head boxes");
+                Console.WriteLine(
+                    $"Received detections with {personBoxCount} person boxes and {headBoxCount} head boxes"
+                );
             }
         }
         catch (Exception e)

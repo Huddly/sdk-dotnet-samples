@@ -13,13 +13,11 @@ internal class Program
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
 
-        services.AddHuddlySdk(
-            configure =>
-            {
-                configure.UseUsbDeviceMonitor();
-                configure.UseIpDeviceMonitor();
-            }
-        );
+        services.AddHuddlySdk(configure =>
+        {
+            configure.UseUsbDeviceMonitor();
+            configure.UseIpDeviceMonitor();
+        });
 
         var sp = services.BuildServiceProvider();
 
@@ -39,7 +37,10 @@ internal class Program
             var supportedFeatures = await lastDevice.GetSupportedFeatures();
 
             Console.WriteLine($"Supported framing modes:");
-            foreach (FramingMode supportedFraming in supportedFeatures.Value?.Framing ?? Enumerable.Empty<FramingMode>())
+            foreach (
+                FramingMode supportedFraming in supportedFeatures.Value?.Framing
+                    ?? Enumerable.Empty<FramingMode>()
+            )
             {
                 Console.WriteLine($"==== {supportedFraming}");
             }
