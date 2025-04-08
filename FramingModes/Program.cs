@@ -49,14 +49,14 @@ internal class Program
             var setFramingResult = await lastDevice.SetFramingMode(FramingMode.Manual, cts.Token);
             if (setFramingResult.IsSuccess)
             {
-                Console.WriteLine("Succesfully changed framing mode!");
+                Console.WriteLine("Successfully changed framing mode!");
             }
 
             Console.WriteLine($"Changing framing mode to: {FramingMode.GeniusFraming}");
             setFramingResult = await lastDevice.SetFramingMode(FramingMode.GeniusFraming, cts.Token);
             if (setFramingResult.IsSuccess)
             {
-                Console.WriteLine("Succesfully changed framing mode!");
+                Console.WriteLine("Successfully changed framing mode!");
             }
         };
         huddlySdk.DeviceDisconnected += (o, e) =>
