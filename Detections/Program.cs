@@ -50,7 +50,6 @@ internal class Program
         };
         var sdkTask = huddlySdk.StartMonitoring(ct: cts.Token);
         await sdkTask;
-        huddlySdk.Dispose();
     }
 
     private static async void HandleDeviceConnected(

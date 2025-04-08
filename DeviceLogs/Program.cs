@@ -37,8 +37,6 @@ internal class Program
 
         var sdkStartTask = huddlySdk.StartMonitoring(ct: cts.Token);
         await sdkStartTask;
-
-        huddlySdk.Dispose();
     }
 
     static async Task RetrieveDeviceLogs(IDevice device, CancellationToken ct)
