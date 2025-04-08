@@ -39,7 +39,7 @@ internal class Program
             var supportedFeatures = await lastDevice.GetSupportedFeatures();
 
             Console.WriteLine($"Supported framing modes:");
-            foreach (FramingMode supportedFraming in supportedFeatures.Framing ?? Enumerable.Empty<FramingMode>())
+            foreach (FramingMode supportedFraming in supportedFeatures.Value?.Framing ?? Enumerable.Empty<FramingMode>())
             {
                 Console.WriteLine($"==== {supportedFraming}");
             }
