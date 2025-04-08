@@ -42,7 +42,7 @@ internal class Program
             // First cancel all running detectors
             detectorCts.Cancel();
             // Wait for the running detectors to be stopped and disposed properly
-            await signal.WaitAsync();
+            await signal.WaitAsync(cts.Token);
             // Only after the detectors have been disposed do we cancel/dispose the sdk.
             cts.Cancel();
         };
@@ -59,7 +59,7 @@ internal class Program
         var device = eventArgs.Device;
         Console.WriteLine($"Device {device} connected");
 
-        await signal.WaitAsync();
+        await signal.WaitAsync(ct);
         await ConsumeDetections(device, ct);
         // Release the signal to indicate that the detector has been disposed gracefully.
         signal.Release();

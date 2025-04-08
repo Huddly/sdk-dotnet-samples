@@ -21,6 +21,7 @@ internal class Program
 
         // Should always be disposed after use
         using var huddlySdk = sp.GetRequiredService<ISdk>();
+        var cts = new CancellationTokenSource();
 
         IDevice? lastDevice = null;
         huddlySdk.DeviceConnected += async (o, e) =>
@@ -41,7 +42,7 @@ internal class Program
             );
 
             // Device firmware version
-            var fwVersion = (await lastDevice.GetFirmwareVersion()).GetValueOrThrow();
+            var fwVersion = (await lastDevice.GetFirmwareVersion(cts.Token)).GetValueOrThrow();
             Console.WriteLine($"Device firmware version: {fwVersion?.ToString() ?? "unknown"}");
         };
         huddlySdk.DeviceDisconnected += (o, e) =>
@@ -49,8 +50,6 @@ internal class Program
             Console.WriteLine($"Device {e.Device.Id} disconnected");
             lastDevice = null;
         };
-
-        var cts = new CancellationTokenSource();
 
         Console.WriteLine("\n\nPress Control+C to quit the sample.\n\n");
         Console.CancelKeyPress += (sender, eventArgs) =>

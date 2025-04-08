@@ -22,6 +22,7 @@ internal class Program
 
         // Should always be disposed after use
         using var huddlySdk = sp.GetRequiredService<ISdk>();
+        var cts = new CancellationTokenSource();
 
         IDevice? lastDevice = null;
         huddlySdk.DeviceConnected += async (o, e) =>
@@ -38,7 +39,7 @@ internal class Program
             lastDevice = e.Device;
 
             var crewDevice = (IMultiCameraDevice)e.Device;
-            var connectedCamerasResult = await crewDevice.GetConnectedCameras();
+            var connectedCamerasResult = await crewDevice.GetConnectedCameras(cts.Token);
             if (!connectedCamerasResult.IsSuccess)
             {
                 Console.WriteLine(
@@ -64,8 +65,6 @@ internal class Program
                 lastDevice = null;
             }
         };
-
-        var cts = new CancellationTokenSource();
 
         Console.WriteLine("\n\nPress Control+C to quit the sample.\n\n");
         Console.CancelKeyPress += (sender, eventArgs) =>
