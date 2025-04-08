@@ -1,5 +1,4 @@
-﻿using Huddly.Sdk.Models;
-using Huddly.Sdk;
+﻿using Huddly.Sdk;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -12,19 +11,16 @@ internal class Program
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
 
-        services.AddHuddlySdk(
-            configure =>
-            {
-                configure.UseUsbDeviceMonitor();
-                configure.UseIpDeviceMonitor();
-            }
-        );
+        services.AddHuddlySdk(configure =>
+        {
+            configure.UseUsbDeviceMonitor();
+            configure.UseIpDeviceMonitor();
+        });
 
         var sp = services.BuildServiceProvider();
 
         // Should always be disposed after use
         using var huddlySdk = sp.GetRequiredService<ISdk>();
-
         var cts = new CancellationTokenSource();
 
         huddlySdk.DeviceConnected += async (sender, eventArgs) =>
@@ -36,18 +32,23 @@ internal class Program
         huddlySdk.DeviceDisconnected += (sender, eventArgs) =>
             Console.WriteLine($"{eventArgs.Device.Id} disconnected");
 
-        var sdkStartTask = huddlySdk.StartMonitoring(ct: cts.Token);
-        await sdkStartTask;
+        Console.WriteLine("\n\nPress Control+C to quit the sample.\n\n");
+        Console.CancelKeyPress += (sender, eventArgs) =>
+        {
+            Console.WriteLine("Cancellation requested; will exit.");
+            eventArgs.Cancel = true;
+            cts.Cancel();
+        };
 
-        huddlySdk.Dispose();
+        await huddlySdk.StartMonitoring(ct: cts.Token);
     }
 
     static async Task RetrieveDeviceLogs(IDevice device, CancellationToken ct)
     {
         // Device logs can be written to any stream. Here we use the console output.
-        Stream outputStream = Console.OpenStandardOutput();
+        var outputStream = Console.OpenStandardOutput();
         Console.WriteLine($"---------- BEGIN DEVICE LOG FOR {device.Id} ---------- ");
-        Result getLogResult = await device.GetLog(outputStream, ct);
+        var getLogResult = await device.GetLog(outputStream, ct);
         Console.WriteLine($"---------- END DEVICE LOG FOR {device.Id} ---------- ");
 
         if (getLogResult.IsSuccess)

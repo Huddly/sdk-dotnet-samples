@@ -1,6 +1,5 @@
 ﻿using Huddly.Sdk;
 using Huddly.Sdk.Models;
-using Huddly.Sdk.Upgraders;
 
 namespace Upgrade;
 
@@ -12,22 +11,26 @@ public class UpgradeRunner
     )
     {
         // Get information on the latest available release for the device
-        Result<RemoteFirmwareInfo> remoteFirmwareInfoResult = await device.FirmwareChecker.GetLatestRemoteVersion(
+        var remoteFirmwareInfoResult = await device.FirmwareChecker.GetLatestRemoteVersion(
             FirmwareChannel.Stable,
             ct
         );
         if (!remoteFirmwareInfoResult.IsSuccess)
         {
             string errorMessage = remoteFirmwareInfoResult.Message;
-            Console.WriteLine($"Failed retrieving latest firmware version: {errorMessage}. Aborting.");
+            Console.WriteLine(
+                $"Failed retrieving latest firmware version: {errorMessage}. Aborting."
+            );
             return;
         }
-        RemoteFirmwareInfo remoteFirmwareInfo = remoteFirmwareInfoResult.Value;
-        Console.WriteLine($"Latest available firmware release is version {remoteFirmwareInfo.FirmwareVersion}");
+        var remoteFirmwareInfo = remoteFirmwareInfoResult.Value;
+        Console.WriteLine(
+            $"Latest available firmware release is version {remoteFirmwareInfo.FirmwareVersion}"
+        );
 
         // Check if the latest firmware is greater than the current device version
         // This step is optional: Upgrades can be performed to any version.
-        Result<FirmwareVersion> deviceFirmwareVersionResult = await device.GetFirmwareVersion(ct);
+        var deviceFirmwareVersionResult = await device.GetFirmwareVersion(ct);
         if (!deviceFirmwareVersionResult.IsSuccess)
         {
             string errorMessage = deviceFirmwareVersionResult.Message;
@@ -36,15 +39,19 @@ public class UpgradeRunner
             );
             return;
         }
-        FirmwareVersion deviceFirmwareVersion = deviceFirmwareVersionResult.Value;
+        var deviceFirmwareVersion = deviceFirmwareVersionResult.Value;
         if (deviceFirmwareVersion >= remoteFirmwareInfo.FirmwareVersion)
         {
-            Console.WriteLine("Latest firmware release is not greater than the current device firmware. Exiting");
+            Console.WriteLine(
+                "Latest firmware release is not greater than the current device firmware."
+            );
             return;
         }
-        Console.WriteLine("Latest firmware release is greater than the current device firmware. Proceeding with upgrade.");
-        
-        HttpClient httpClient = new HttpClient();
+        Console.WriteLine(
+            "Latest firmware release is greater than the current device firmware. Proceeding with upgrade."
+        );
+
+        var httpClient = new HttpClient();
         using HttpResponseMessage response = await httpClient.GetAsync(
             remoteFirmwareInfo.DownloadUrl,
             HttpCompletionOption.ResponseHeadersRead,
@@ -55,7 +62,7 @@ public class UpgradeRunner
             Console.WriteLine("Failed trying to download firmware. Aborting.");
         }
 
-        string firmwareFilePath = Path.GetTempFileName();
+        var firmwareFilePath = Path.GetTempFileName();
         using (
             var fileStream = new FileStream(
                 firmwareFilePath,
@@ -72,7 +79,7 @@ public class UpgradeRunner
 
         try
         {
-            IFirmwareUpgrader deviceUpgrader = await device.GetFirmwareUpgrader(firmwareFilePath, ct);
+            var deviceUpgrader = await device.GetFirmwareUpgrader(firmwareFilePath, ct);
             // Subscribe to this event before Executing the upgrade to see upgrade progress.
             deviceUpgrader.ProgressUpdated += (sender, e) =>
                 Console.WriteLine(
@@ -87,7 +94,7 @@ public class UpgradeRunner
             // such, the original Huddly.Sdk.IDevice instance that was used to create the Huddly.Sdk.Upgraders.IFirmwareUpgrader
             // will disconnect. To continue communicating with the device when it has reconnected,
             // consumers should use the new Huddly.Sdk.IDevice instance emitted in the Huddly.Sdk.ISdk.DeviceConnected event
-            Result upgradeResult = await deviceUpgrader.Execute(ct);
+            var upgradeResult = await deviceUpgrader.Execute(ct);
             if (!upgradeResult.IsSuccess)
             {
                 Console.WriteLine($"Upgrade failed: {upgradeResult.Message}");

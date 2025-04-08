@@ -13,21 +13,19 @@ internal class Program
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
 
-        services.AddHuddlySdk(
-            configure =>
-            {
-                configure.UseUsbDeviceMonitor();
-                configure.UseIpDeviceMonitor();
-            }
-        );
+        services.AddHuddlySdk(configure =>
+        {
+            configure.UseUsbDeviceMonitor();
+            configure.UseIpDeviceMonitor();
+        });
 
         var sp = services.BuildServiceProvider();
 
         // Should always be disposed after use
         using var huddlySdk = sp.GetRequiredService<ISdk>();
-
         var cts = new CancellationTokenSource();
-        // Create a separate cts specifically for cancelling detectors.
+
+        // Create a separate cts specifically to cancel detectors.
         var detectorCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
         // For signalling when detectors have been disposed properly
         var signal = new SemaphoreSlim(1, 1);
@@ -35,7 +33,7 @@ internal class Program
         huddlySdk.DeviceConnected += (sender, eventArgs) =>
             HandleDeviceConnected(sender, eventArgs, detectorCts.Token, signal);
 
-        Console.WriteLine("Press Control+C to quit the sample.");
+        Console.WriteLine("\n\nPress Control+C to quit the sample.\n\n");
         Console.CancelKeyPress += async (sender, eventArgs) =>
         {
             Console.WriteLine("Cancellation requested; will exit.");
@@ -44,13 +42,11 @@ internal class Program
             // First cancel all running detectors
             detectorCts.Cancel();
             // Wait for the running detectors to be stopped and disposed properly
-            await signal.WaitAsync();
+            await signal.WaitAsync(cts.Token);
             // Only after the detectors have been disposed do we cancel/dispose the sdk.
             cts.Cancel();
         };
-        Task sdkTask = huddlySdk.StartMonitoring(ct: cts.Token);
-        await sdkTask;
-        huddlySdk.Dispose();
+        await huddlySdk.StartMonitoring(ct: cts.Token);
     }
 
     private static async void HandleDeviceConnected(
@@ -60,10 +56,10 @@ internal class Program
         SemaphoreSlim signal
     )
     {
-        IDevice device = eventArgs.Device;
+        var device = eventArgs.Device;
         Console.WriteLine($"Device {device} connected");
 
-        await signal.WaitAsync();
+        await signal.WaitAsync(ct);
         await ConsumeDetections(device, ct);
         // Release the signal to indicate that the detector has been disposed gracefully.
         signal.Release();
@@ -71,17 +67,17 @@ internal class Program
 
     private static async Task ConsumeDetections(IDevice device, CancellationToken ct)
     {
-        DetectorOptions detectorOptions = DetectorOptions.DefaultFor(device.Model);
+        var detectorOptions = DetectorOptions.DefaultFor(device.Model);
         detectorOptions.Mode = DetectorMode.AlwaysOn;
 
-        Result<IDetector> detectorResult = await device.GetDetector(detectorOptions, ct);
+        var detectorResult = await device.GetDetector(detectorOptions, ct);
         if (!detectorResult.IsSuccess)
         {
             Console.WriteLine($"Could not create detector: {detectorResult.Message}");
             return;
         }
 
-        IDetector detector = detectorResult.Value;
+        var detector = detectorResult.Value;
         try
         {
             // This loop will continue indefinitely until either:
@@ -90,9 +86,11 @@ internal class Program
             // Note that the IAsyncEnumerable returned by GetDetections does not throw in either of these cases.
             await foreach (Huddly.Sdk.Models.Detections detections in detector.GetDetections(ct))
             {
-                int personBoxCount = detections.Count(detection => detection.Label == "person");
-                int headBoxCount = detections.Count(detection => detection.Label == "head");
-                Console.WriteLine($"Received detections with {personBoxCount} person boxes and {headBoxCount} head boxes");
+                var personBoxCount = detections.Count(detection => detection.Label == "person");
+                var headBoxCount = detections.Count(detection => detection.Label == "head");
+                Console.WriteLine(
+                    $"Received detections with {personBoxCount} person boxes and {headBoxCount} head boxes"
+                );
             }
         }
         catch (Exception e)
@@ -100,7 +98,7 @@ internal class Program
             Console.WriteLine($"Detector threw exception: {e.Message}");
         }
         // Always dispose the detector properly after use.
-        // This should be completed before disposing/cancelling the ISdk from which the detector has been derived.
+        // This should be completed before disposing/canceling the ISdk from which the detector has been derived.
         await detector.DisposeAsync();
     }
 }

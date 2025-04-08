@@ -1,6 +1,4 @@
-﻿using Huddly.Device.Model;
-using Huddly.Sdk;
-using Huddly.Sdk.Models;
+﻿using Huddly.Sdk;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -8,9 +6,8 @@ namespace CameraInfo;
 
 internal class Program
 {
-    static void Main(string[] _)
+    static async Task Main(string[] _)
     {
-        var cts = new CancellationTokenSource();
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
 
@@ -24,6 +21,7 @@ internal class Program
 
         // Should always be disposed after use
         using var huddlySdk = sp.GetRequiredService<ISdk>();
+        var cts = new CancellationTokenSource();
 
         IDevice? lastDevice = null;
         huddlySdk.DeviceConnected += async (o, e) =>
@@ -31,23 +29,21 @@ internal class Program
             lastDevice = e.Device;
 
             // Properties containing camera info
-            string serialNumber = lastDevice.Serial;
-            Manufacturer manufacturer = lastDevice.Manufacturer;
-            DeviceModel deviceModel = lastDevice.Model;
+            var serialNumber = lastDevice.Serial;
+            var manufacturer = lastDevice.Manufacturer;
+            var deviceModel = lastDevice.Model;
 
             // Model name as a string
-            Result<string> deviceNameResult = await lastDevice.GetName();
-            string deviceName = deviceNameResult.IsSuccess ? deviceNameResult.Value : "Unknown";
+            var deviceNameResult = await lastDevice.GetName(cts.Token);
+            var deviceName = deviceNameResult.IsSuccess ? deviceNameResult.Value : "Unknown";
 
             Console.WriteLine(
                 $"Device type {deviceModel} with serial number {serialNumber} and name {deviceName} is manufactured by {manufacturer}."
             );
 
             // Device firmware version
-            FirmwareVersion fwVersion = (await lastDevice.GetFirmwareVersion()).GetValueOrThrow();
+            var fwVersion = (await lastDevice.GetFirmwareVersion(cts.Token)).GetValueOrThrow();
             Console.WriteLine($"Device firmware version: {fwVersion?.ToString() ?? "unknown"}");
-
-            Console.WriteLine("Press any key to quit...");
         };
         huddlySdk.DeviceDisconnected += (o, e) =>
         {
@@ -55,7 +51,14 @@ internal class Program
             lastDevice = null;
         };
 
-        huddlySdk.StartMonitoring();
-        Console.ReadKey();
+        Console.WriteLine("\n\nPress Control+C to quit the sample.\n\n");
+        Console.CancelKeyPress += (sender, eventArgs) =>
+        {
+            Console.WriteLine("Cancellation requested; will exit.");
+            eventArgs.Cancel = true;
+            cts.Cancel();
+        };
+
+        await huddlySdk.StartMonitoring(ct: cts.Token);
     }
 }

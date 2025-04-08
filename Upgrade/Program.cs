@@ -11,22 +11,19 @@ internal class Program
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
 
-        services.AddHuddlySdk(
-            configure =>
-            {
-                configure.UseUsbDeviceMonitor();
-                configure.UseIpDeviceMonitor();
-            }
-        );
+        services.AddHuddlySdk(configure =>
+        {
+            configure.UseUsbDeviceMonitor();
+            configure.UseIpDeviceMonitor();
+        });
 
         var sp = services.BuildServiceProvider();
 
         // Should always be disposed after use
         using var huddlySdk = sp.GetRequiredService<ISdk>();
-
         var cts = new CancellationTokenSource();
 
-        int numDevicesConnected = 0;
+        var numDevicesConnected = 0;
         huddlySdk.DeviceConnected += async (sender, eventArgs) =>
         {
             if (numDevicesConnected++ > 0)
@@ -44,7 +41,8 @@ internal class Program
         };
 
         Console.WriteLine(
-            "Press Control+C to quit the sample. Note: Cancelling an ongoing upgrade is not recommended."
+            "\n\nPress Control+C to quit the sample. "
+                + "Note: Canceling an ongoing upgrade is not recommended.\n\n"
         );
         Console.CancelKeyPress += (sender, eventArgs) =>
         {
@@ -52,8 +50,7 @@ internal class Program
             eventArgs.Cancel = true;
             cts.Cancel();
         };
-        Task sdkTask = huddlySdk.StartMonitoring(ct: cts.Token);
-        await sdkTask;
-        huddlySdk.Dispose();
+
+        await huddlySdk.StartMonitoring(ct: cts.Token);
     }
 }
