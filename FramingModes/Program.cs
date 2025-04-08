@@ -7,9 +7,8 @@ namespace FramingModes;
 
 internal class Program
 {
-    static void Main(string[] _)
+    static async Task Main(string[] _)
     {
-        var cts = new CancellationTokenSource();
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
 
@@ -58,16 +57,23 @@ internal class Program
             {
                 Console.WriteLine("Succesfully changed framing mode!");
             }
-
-            Console.WriteLine("Press any key to quit...");
         };
         huddlySdk.DeviceDisconnected += (o, e) =>
         {
             Console.WriteLine($"Device {e.Device.Id} disconnected");
             lastDevice = null;
         };
-        var sdkStartTask = huddlySdk.StartMonitoring();
 
-        Console.ReadKey();
+        var cts = new CancellationTokenSource();
+
+        Console.WriteLine("\n\nPress Control+C to quit the sample.\n\n");
+        Console.CancelKeyPress += (sender, eventArgs) =>
+        {
+            Console.WriteLine("Cancellation requested; will exit.");
+            eventArgs.Cancel = true;
+            cts.Cancel();
+        };
+
+        await huddlySdk.StartMonitoring(ct: cts.Token);
     }
 }

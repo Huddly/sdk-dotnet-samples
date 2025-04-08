@@ -43,7 +43,7 @@ public class UpgradeRunner
         if (deviceFirmwareVersion >= remoteFirmwareInfo.FirmwareVersion)
         {
             Console.WriteLine(
-                "Latest firmware release is not greater than the current device firmware. Exiting"
+                "Latest firmware release is not greater than the current device firmware."
             );
             return;
         }

@@ -23,9 +23,9 @@ internal class Program
 
         // Should always be disposed after use
         using var huddlySdk = sp.GetRequiredService<ISdk>();
-
         var cts = new CancellationTokenSource();
-        // Create a separate cts specifically for cancelling detectors.
+
+        // Create a separate cts specifically to cancel detectors.
         var detectorCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
         // For signalling when detectors have been disposed properly
         var signal = new SemaphoreSlim(1, 1);
@@ -33,7 +33,7 @@ internal class Program
         huddlySdk.DeviceConnected += (sender, eventArgs) =>
             HandleDeviceConnected(sender, eventArgs, detectorCts.Token, signal);
 
-        Console.WriteLine("Press Control+C to quit the sample.");
+        Console.WriteLine("\n\nPress Control+C to quit the sample.\n\n");
         Console.CancelKeyPress += async (sender, eventArgs) =>
         {
             Console.WriteLine("Cancellation requested; will exit.");
@@ -46,8 +46,7 @@ internal class Program
             // Only after the detectors have been disposed do we cancel/dispose the sdk.
             cts.Cancel();
         };
-        var sdkTask = huddlySdk.StartMonitoring(ct: cts.Token);
-        await sdkTask;
+        await huddlySdk.StartMonitoring(ct: cts.Token);
     }
 
     private static async void HandleDeviceConnected(
@@ -99,7 +98,7 @@ internal class Program
             Console.WriteLine($"Detector threw exception: {e.Message}");
         }
         // Always dispose the detector properly after use.
-        // This should be completed before disposing/cancelling the ISdk from which the detector has been derived.
+        // This should be completed before disposing/canceling the ISdk from which the detector has been derived.
         await detector.DisposeAsync();
     }
 }

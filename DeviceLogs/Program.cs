@@ -21,7 +21,6 @@ internal class Program
 
         // Should always be disposed after use
         using var huddlySdk = sp.GetRequiredService<ISdk>();
-
         var cts = new CancellationTokenSource();
 
         huddlySdk.DeviceConnected += async (sender, eventArgs) =>
@@ -33,8 +32,15 @@ internal class Program
         huddlySdk.DeviceDisconnected += (sender, eventArgs) =>
             Console.WriteLine($"{eventArgs.Device.Id} disconnected");
 
-        var sdkStartTask = huddlySdk.StartMonitoring(ct: cts.Token);
-        await sdkStartTask;
+        Console.WriteLine("\n\nPress Control+C to quit the sample.\n\n");
+        Console.CancelKeyPress += (sender, eventArgs) =>
+        {
+            Console.WriteLine("Cancellation requested; will exit.");
+            eventArgs.Cancel = true;
+            cts.Cancel();
+        };
+
+        await huddlySdk.StartMonitoring(ct: cts.Token);
     }
 
     static async Task RetrieveDeviceLogs(IDevice device, CancellationToken ct)

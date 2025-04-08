@@ -21,7 +21,6 @@ internal class Program
 
         // Should always be disposed after use
         using var huddlySdk = sp.GetRequiredService<ISdk>();
-
         var cts = new CancellationTokenSource();
 
         int numDevicesConnected = 0;
@@ -42,7 +41,8 @@ internal class Program
         };
 
         Console.WriteLine(
-            "Press Control+C to quit the sample. Note: Cancelling an ongoing upgrade is not recommended."
+            "\n\nPress Control+C to quit the sample. "
+                + "Note: Canceling an ongoing upgrade is not recommended.\n\n"
         );
         Console.CancelKeyPress += (sender, eventArgs) =>
         {
@@ -50,7 +50,7 @@ internal class Program
             eventArgs.Cancel = true;
             cts.Cancel();
         };
-        var sdkTask = huddlySdk.StartMonitoring(ct: cts.Token);
-        await sdkTask;
+
+        await huddlySdk.StartMonitoring(ct: cts.Token);
     }
 }

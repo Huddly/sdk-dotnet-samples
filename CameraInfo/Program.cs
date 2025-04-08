@@ -6,7 +6,7 @@ namespace CameraInfo;
 
 internal class Program
 {
-    static void Main(string[] _)
+    static async Task Main(string[] _)
     {
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
@@ -43,8 +43,6 @@ internal class Program
             // Device firmware version
             var fwVersion = (await lastDevice.GetFirmwareVersion()).GetValueOrThrow();
             Console.WriteLine($"Device firmware version: {fwVersion?.ToString() ?? "unknown"}");
-
-            Console.WriteLine("Press any key to quit...");
         };
         huddlySdk.DeviceDisconnected += (o, e) =>
         {
@@ -52,7 +50,16 @@ internal class Program
             lastDevice = null;
         };
 
-        huddlySdk.StartMonitoring();
-        Console.ReadKey();
+        var cts = new CancellationTokenSource();
+
+        Console.WriteLine("\n\nPress Control+C to quit the sample.\n\n");
+        Console.CancelKeyPress += (sender, eventArgs) =>
+        {
+            Console.WriteLine("Cancellation requested; will exit.");
+            eventArgs.Cancel = true;
+            cts.Cancel();
+        };
+
+        await huddlySdk.StartMonitoring(ct: cts.Token);
     }
 }
