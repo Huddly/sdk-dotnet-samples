@@ -139,6 +139,7 @@ internal static class ApiSurfaceGenerator
         null => "null",
         string s => $"\"{s}\"",
         bool b => b ? "true" : "false",
+        IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
         _ => value.ToString() ?? "null",
     };
 
