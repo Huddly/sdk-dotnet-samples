@@ -18,7 +18,7 @@ internal static class ApiSurfaceGenerator
     {
         var typesByName = assemblies
             .SelectMany(a => a.GetExportedTypes())
-            .Where(t => t.IsInterface && t.IsPublic)
+            .Where(t => t.IsInterface && (t.IsPublic || t.IsNestedPublic))
             .ToDictionary(t => t.FullName!, t => t);
 
         return contractedInterfaceNames
