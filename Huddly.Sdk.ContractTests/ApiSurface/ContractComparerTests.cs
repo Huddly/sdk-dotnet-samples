@@ -48,6 +48,17 @@ public class ContractComparerTests
     }
 
     [Fact]
+    public void FindBreakingChanges_IgnoresAnIndexerParameterRename()
+    {
+        var baseline = Surface("A.IFoo", "interface IFoo", "property string Item[int index] { get; set; }");
+        var current = Surface("A.IFoo", "interface IFoo", "property string Item[int i] { get; set; }");
+
+        var breaks = ContractComparer.FindBreakingChanges([baseline], [current]);
+
+        Assert.Empty(breaks);
+    }
+
+    [Fact]
     public void FindBreakingChanges_IgnoresADefaultValueChange()
     {
         var baseline = Surface("A.IFoo", "interface IFoo", "method void Bar(int value = 1)");

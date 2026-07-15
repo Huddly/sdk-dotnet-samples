@@ -38,25 +38,31 @@ internal readonly record struct MemberSignature(string Identity, IReadOnlyList<s
     }
 
     /// <summary>
-    /// For a method line's "(...)" parameter list, drops each parameter's name and default value,
-    /// keeping only its by-ref modifier and type - the part that actually determines whether a
-    /// compiled caller still binds to the member. No-op for properties/events, which have no
-    /// parameter list of their own.
+    /// For a method's "(...)" parameter list or an indexer's "[...]" index-parameter list, drops
+    /// each parameter's name and default value, keeping only its by-ref modifier and type - the
+    /// part that actually determines whether a compiled caller still binds to the member. No-op
+    /// for non-indexer properties/events, which have no parameter list of their own.
     /// </summary>
     private static string StripParameterCosmetics(string identityLine)
     {
-        var openParen = identityLine.IndexOf('(');
-        if (openParen < 0)
+        var bracket = FindBracketPair(identityLine, '(', ')') ?? FindBracketPair(identityLine, '[', ']');
+        if (bracket is not var (open, close))
             return identityLine;
 
-        var closeParen = identityLine.LastIndexOf(')');
-        if (closeParen < openParen)
-            return identityLine;
-
-        var parameters = SplitTopLevel(identityLine[(openParen + 1)..closeParen], ',');
+        var parameters = SplitTopLevel(identityLine[(open + 1)..close], ',');
         var strippedParameters = parameters.Select(StripParameter);
 
-        return identityLine[..(openParen + 1)] + string.Join(", ", strippedParameters) + identityLine[closeParen..];
+        return identityLine[..(open + 1)] + string.Join(", ", strippedParameters) + identityLine[close..];
+    }
+
+    private static (int Open, int Close)? FindBracketPair(string text, char openChar, char closeChar)
+    {
+        var open = text.IndexOf(openChar);
+        if (open < 0)
+            return null;
+
+        var close = text.LastIndexOf(closeChar);
+        return close < open ? null : (open, close);
     }
 
     private static string StripParameter(string parameter)
