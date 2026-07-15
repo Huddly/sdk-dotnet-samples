@@ -44,7 +44,7 @@ jobs:
       # major - lost or resignatured a previously published contract member.
       - name: Run API surface contract tests
         shell: bash
-        run: dotnet Huddly.Sdk.ContractTests/bin/Release/net10.0/Huddly.Sdk.ContractTests.dll -trait- "Category=Hardware"
+        run: dotnet Huddly.Sdk.ContractTests/bin/Release/*/Huddly.Sdk.ContractTests.dll -trait- "Category=Hardware"
 
       # Only reached if the step above passed. Ratchets ContractedInterfaces.approved.txt forward
       # to the shape actually tested, so the next run compares against today's baseline instead of
@@ -54,7 +54,7 @@ jobs:
         shell: bash
         env:
           HUDDLY_CONTRACT_UPDATE_BASELINE: "1"
-        run: dotnet Huddly.Sdk.ContractTests/bin/Release/net10.0/Huddly.Sdk.ContractTests.dll -trait- "Category=Hardware"
+        run: dotnet Huddly.Sdk.ContractTests/bin/Release/*/Huddly.Sdk.ContractTests.dll -trait- "Category=Hardware"
 
       # No-ops if the regenerated file is byte-identical to what's already committed. Reuses the
       # same branch/PR across runs instead of piling up a new PR every night.
@@ -79,4 +79,4 @@ jobs:
   # deliberate decision not to depend on sdk-dotnet's private VPN/Jenkins bridge from a public
   # repo). Run it manually on a machine with a device connected instead:
   #   dotnet build Huddly.Sdk.ContractTests -c Release
-  #   dotnet Huddly.Sdk.ContractTests/bin/Release/net10.0/Huddly.Sdk.ContractTests.dll -trait "Category=Hardware"
+  #   dotnet Huddly.Sdk.ContractTests/bin/Release/*/Huddly.Sdk.ContractTests.dll -trait "Category=Hardware"

@@ -13,7 +13,7 @@ namespace Huddly.Sdk.ContractTests.DeviceDiscovery;
 /// infrastructure that reaches a real device - deliberately not borrowing sdk-dotnet's private
 /// VPN/Jenkins bridge from a public repo - so run it manually on a machine with a device attached:
 ///   dotnet build Huddly.Sdk.ContractTests -c Release
-///   dotnet Huddly.Sdk.ContractTests/bin/Release/net10.0/Huddly.Sdk.ContractTests.dll -trait "Category=Hardware"
+///   dotnet Huddly.Sdk.ContractTests/bin/Release/*/Huddly.Sdk.ContractTests.dll -trait "Category=Hardware"
 /// </summary>
 [Trait("Category", "Hardware")]
 public class DeviceFirmwareContractTests(ITestOutputHelper output)

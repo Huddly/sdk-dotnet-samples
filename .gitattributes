@@ -3,4 +3,4 @@
 # Forced to LF regardless of a developer's core.autocrlf setting, so the file that actually lands
 # in git is byte-identical whether it was regenerated on Windows or Linux CI - otherwise a
 # Windows git client would silently convert it back to CRLF on commit, undoing that guarantee.
-Huddly.Sdk.ContractTests/Contract/ContractBaseline/*.approved.txt text eol=lf
+Huddly.Sdk.ContractTests/Contract/ContractBaseline/**/*.approved.txt text eol=lf
