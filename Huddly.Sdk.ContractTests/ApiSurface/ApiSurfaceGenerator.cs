@@ -44,9 +44,10 @@ internal static class ApiSurfaceGenerator
 
         lines.AddRange(type.GetMethods()
             .Where(m => !m.IsSpecialName)
+            .Select(m => (m.Name, Text: DescribeMethod(m, nullability)))
             .OrderBy(m => m.Name, StringComparer.Ordinal)
-            .ThenBy(m => m.GetParameters().Length)
-            .Select(m => DescribeMethod(m, nullability)));
+            .ThenBy(m => m.Text, StringComparer.Ordinal)
+            .Select(m => m.Text));
 
         return lines;
     }
