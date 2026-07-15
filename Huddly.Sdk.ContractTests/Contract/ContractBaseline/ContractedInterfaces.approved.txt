@@ -1,0 +1,210 @@
+## Huddly.Device.Model.IDeviceDescriptor
+interface IDeviceDescriptor
+property DateTime FirstSeen { get; }
+property IPAddress IPAddress { get; }
+property string Id { get; }
+property string Key { get; }
+property PhysicalAddress MacAddress { get; }
+property Manufacturer Manufacturer { get; }
+property DeviceModel Model { get; }
+property ushort ProductId { get; }
+property string Serial { get; }
+property ushort VendorId { get; }
+
+## Huddly.Device.Model.IExclusiveLock
+interface IExclusiveLock
+method SemaphoreSlim GetLock(Guid sessionId, string resourceId)
+method ExclusiveLockStatus GetStatus(Guid sessionId, string resourceId)
+method void ReleaseExclusive(Guid sessionId, string resourceId)
+method SemaphoreSlim TakeExclusive(Guid sessionId, string resourceId, TimeSpan exclusiveFor, string reason)
+
+## Huddly.Sdk.CameraControl.IImageSettings
+interface IImageSettings
+method Task<Result<double>> GetBrightness(CancellationToken ct = null)
+method Task<Result<Toggle>> GetFaceBasedExposure(CancellationToken ct = null)
+method Task<Result<PerspectiveCorrection>> GetPerspectiveCorrection(CancellationToken ct = null)
+method Task<Result<double>> GetSaturation(CancellationToken ct = null)
+method Task<Result> PersistCurrentImageSettings(CancellationToken ct = null)
+method Task<Result> RestorePersistentImageSettings(CancellationToken ct = null)
+method Task<Result> SetBrightness(double value, CancellationToken ct = null)
+method Task<Result> SetFaceBasedExposure(Toggle value, CancellationToken ct = null)
+[Obsolete] method Task<Result> SetPerspectiveCorrection(PerspectiveCorrection value, CancellationToken ct = null)
+method Task<Result> SetSaturation(double value, CancellationToken ct = null)
+
+## Huddly.Sdk.CameraControl.IPtz
+interface IPtz
+method Task<Result<double>> GetPan(CancellationToken ct = null)
+[Obsolete] method Task<Result<Ptz>> GetPtz(CancellationToken ct = null)
+method Task<Result<double>> GetTilt(CancellationToken ct = null)
+method Task<Result<double>> GetZoom(CancellationToken ct = null)
+method Task<Result> PersistCurrentPtz(CancellationToken ct = null)
+method Task<Result> RestorePersistentPtz(CancellationToken ct = null)
+method Task<Result> SetPan(double value, CancellationToken ct = null)
+[Obsolete] method Task<Result> SetPtz(double? panValue = null, double? tiltValue = null, double? zoomValue = null, CancellationToken ct = null)
+method Task<Result> SetTilt(double value, CancellationToken ct = null)
+method Task<Result> SetZoom(double value, CancellationToken ct = null)
+
+## Huddly.Sdk.Detectors.IDetector
+interface IDetector
+method IAsyncEnumerable<Detections> GetDetections(CancellationToken ct = null)
+
+## Huddly.Sdk.FeatureControl.IFeatureControl
+interface IFeatureControl
+method Task<Result<DeviceFeatureStatus>> GetDeviceFeatureStatus(CancellationToken ct = null)
+method Task<Result<SupportedFeatures>> GetSupportedFeatures(CancellationToken ct = null)
+
+## Huddly.Sdk.FramingModeCore.IFramingModeControl
+interface IFramingModeControl
+method Task<Result<FramingMode>> GetFramingMode(CancellationToken ct = null)
+method Task<Result> SetFramingMode(FramingMode value, CancellationToken ct = null)
+
+## Huddly.Sdk.FramingSubscribers.IFramingSubscriber
+interface IFramingSubscriber
+method IAsyncEnumerable<Framings> GetFramings(CancellationToken ct = null)
+
+## Huddly.Sdk.FramingZoneCore.IFramingZoneControl
+interface IFramingZoneControl
+method Task<Result<FramingZone>> GetFramingZone(CancellationToken ct = null)
+[Obsolete] method Task<Result<IList<FramingZonePersonDetectionResult>>> GetFramingZonePeopleDetectionResults(CancellationToken ct = null)
+method IAsyncEnumerable<IList<FramingZonePersonDetection>> GetFramingZonePersonDetections(CancellationToken ct = null)
+method Task<Result<Toggle>> GetFramingZoneToggle(CancellationToken ct = null)
+[Obsolete] method Task<Result<bool>> IsFramingZoneEnabled(CancellationToken ct = null)
+method Task<Result> SetFramingZone(FramingZone value, CancellationToken ct = null)
+method Task<Result> SetFramingZoneToggle(Toggle toggle, CancellationToken ct = null)
+[Obsolete] method Task<Result> ToggleFramingZone(Toggle toggle, CancellationToken ct = null)
+
+## Huddly.Sdk.Gateways.IFirmwareApi
+interface IFirmwareApi
+[Get] method Task<ApiResponse<Dictionary<string, List<FirmwareInfoResponse>>>> GetFwListForAllDevices(FirmwareChannel channel, Dictionary<string, string> queryParams, CancellationToken ct)
+[Get] method Task<ApiResponse<Dictionary<string, List<FirmwareInfoResponse>>>> GetFwListForAllDevices(FirmwareChannel channel, int fwListLength, CancellationToken ct)
+[Get] method Task<ApiResponse<FirmwareInfoResponse>> GetLatestFirmware(FirmwareTarget target, FirmwareChannel channel, Dictionary<string, string> queryParams, CancellationToken ct)
+
+## Huddly.Sdk.Heartbeat.IDeviceHeartbeat
+interface IDeviceHeartbeat
+property bool IsRunning { get; }
+event EventHandler<IDevice> HeartbeatFailed
+method void Resume()
+method Task Start(IDeviceMonitor monitor, int probeInterval_ms, CancellationToken ct)
+method void Suspend()
+
+## Huddly.Sdk.IDevice
+interface IDevice
+property ConnectionState ConnectionState { get; }
+property ConnectionType ConnectionType { get; }
+property IFirmwareChecker FirmwareChecker { get; }
+property string Id { get; }
+property DateTime LastActivity { get; }
+property Manufacturer Manufacturer { get; }
+property DeviceModel Model { get; }
+property string Serial { get; }
+method Task<Result> AddFeatureOption(FeatureOption feature, CancellationToken ct = null)
+method Task<Result> EraseLog(CancellationToken ct = null)
+method Task<Result<IDetector>> GetDetector(DetectorOptions? options = null, CancellationToken ct = null)
+method Task<Result<IList<FeatureOption>>> GetFeatureOptions(CancellationToken ct = null)
+[Obsolete] method IFirmwareParser GetFirmwareParser()
+method Task<IFirmwareUpgrader> GetFirmwareUpgrader(string firmwarePath, CancellationToken ct = null)
+method Task<Result<FirmwareVersion>> GetFirmwareVersion(CancellationToken ct = null)
+method Task<Result<IFramingSubscriber>> GetFramingSubscriber(FramingSubscriberOptions options, CancellationToken ct = null)
+[Obsolete] method Task<Result<SemVersion>> GetFwVersion(CancellationToken ct = null)
+[Obsolete] method Task<Result<FirmwareInfo>> GetLatestFirmwareReleaseInfo(FirmwareChannel channel = Stable, CancellationToken ct = null)
+method Task<Result> GetLog(Stream outputStream, CancellationToken ct = null)
+method Task<Result<string>> GetName(CancellationToken ct = null)
+method Task<Result<StreamStatusContainer>> GetStreamStatus(CancellationToken ct = null)
+method Task<Result<DateTime>> GetTime(CancellationToken ct = null)
+method Task<Result<TimeSpan>> GetUptime(CancellationToken ct = null)
+[Obsolete] method Task<Result<bool>> IsGreaterThanCurrentVersion(FirmwareInfo firmwareInfo, CancellationToken ct = null)
+method Task<Result> Reboot(CancellationToken ct = null)
+method Task<Result> ReportAudioOutputLevel(int sampleRate, double[] samples, CancellationToken ct = null)
+method Task<Result> SetTime(DateTime value, CancellationToken ct = null)
+method IAsyncEnumerable<StreamStatusContainer> SubscribeToStreamStatusChange(CancellationToken ct = null)
+
+## Huddly.Sdk.IDeviceMonitor
+interface IDeviceMonitor
+property bool IsMonitoring { get; }
+event EventHandler<DeviceAccessDeniedEventArgs> DeviceAccessDenied
+event EventHandler<DeviceConnectionChangeEventArgs> DeviceConnected
+event EventHandler<DeviceConnectionChangeEventArgs> DeviceDisconnected
+method ISet<IDevice> GetDevices()
+method Type GetDiscoveryType()
+method void Resume()
+method Task Start(SdkSession session, int timeout_ms = -1, CancellationToken ct = null)
+method void Suspend()
+method bool TryGetDevice(string deviceId, out IDevice? device)
+
+## Huddly.Sdk.IIpDevice
+interface IIpDevice
+property ICameraGrpcClient Client { get; }
+property IPAddress IpAddress { get; }
+method Task<Result<byte[]>> GetXu(Guid id, uint control, CancellationToken ct = null)
+method Task<Result> SetXu(Guid id, uint control, byte[] payload, CancellationToken ct = null)
+
+## Huddly.Sdk.IIpDeviceMonitor
+interface IIpDeviceMonitor
+
+## Huddly.Sdk.IMultiCameraDevice
+interface IMultiCameraDevice
+method Task<Result<IList<CameraStatus>>> GetConnectedCameras(CancellationToken ct = null)
+
+## Huddly.Sdk.ISdk
+interface ISdk
+event EventHandler<DeviceAccessDeniedEventArgs> DeviceAccessDenied
+event EventHandler<DeviceConnectionChangeEventArgs> DeviceConnected
+event EventHandler<DeviceConnectionChangeEventArgs> DeviceDisconnected
+method IImmutableDictionary<string, IDevice> GetMonitoredDevices()
+method bool IsMonitoring()
+method Task StartMonitoring(int timeout_ms = -1, CancellationToken ct = null)
+[Obsolete] method void StopMonitoring()
+
+## Huddly.Sdk.IUsbDevice
+interface IUsbDevice
+property ICameraUsbClient Client { get; }
+property ushort ProductId { get; }
+property ushort VendorId { get; }
+method Task<Result<Toggle?>> GetCanvasEnhanceMode(CancellationToken ct = null)
+method Task<Result<ExclusiveLockStatus>> GetExclusiveLockStatus(CancellationToken ct)
+method Task<Result> ReleaseExclusiveLock(CancellationToken ct)
+method Task<Result> SetCanvasEnhanceMode(Toggle value, CancellationToken ct = null)
+method Task<Result> TakeExclusiveLock(int timeout, string reason, CancellationToken ct)
+
+## Huddly.Sdk.IUsbDeviceMonitor
+interface IUsbDeviceMonitor
+
+## Huddly.Sdk.Models.IFirmwareInfo
+interface IFirmwareInfo
+property ConnectionType Connection { get; }
+property FirmwareVersion FirmwareVersion { get; }
+property DeviceModel Model { get; }
+
+## Huddly.Sdk.Models.IMonitorController
+interface IMonitorController
+event EventHandler Resume
+event EventHandler Suspend
+
+## Huddly.Sdk.MtrIntelligentCameraCore.IMtrIntelligentCameraControl
+interface IMtrIntelligentCameraControl
+method Task<Result<Toggle>> GetMtrIntelligentCameraToggle(CancellationToken ct = null)
+method Task<Result> SetMtrIntelligentCameraToggle(Toggle toggle, CancellationToken ct = null)
+
+## Huddly.Sdk.Upgraders.IFirmwareChecker
+interface IFirmwareChecker
+method IFirmwareChecker ForDevice(ConnectionType connection, DeviceModel model)
+method Task<Result<List<RemoteFirmwareInfo>>> GetFirmwareList(FirmwareChannel channel, CancellationToken ct = null)
+method Task<Result<List<RemoteFirmwareInfo>>> GetFirmwareList(FirmwareChannel channel, Dictionary<string, string> metadata, CancellationToken ct = null)
+method Task<Result<LocalFirmwareInfo>> GetLatestLocalVersion(IEnumerable<string> filePaths, CancellationToken ct = null)
+method Task<Result<RemoteFirmwareInfo>> GetLatestRemoteVersion(FirmwareChannel channel, CancellationToken ct = null)
+method Task<Result<RemoteFirmwareInfo>> GetLatestRemoteVersion(FirmwareChannel channel, Dictionary<string, string> metadata, CancellationToken ct = null)
+method Task<Result<FirmwareVersion>> GetVersion(string filePath, CancellationToken ct = null)
+
+## Huddly.Sdk.Upgraders.IFirmwareParser
+[Obsolete] interface IFirmwareParser
+[Obsolete] method SemVersion? GetFirmwareVersion(string firmwarePath)
+[Obsolete] method ValueTuple<string, SemVersion>? GetMostRecentFirmware(IEnumerable<string> firmwarePaths)
+[Obsolete] method ValueTuple<string, FirmwareVersion>? GetMostRecentVersion(IEnumerable<string> filePaths)
+[Obsolete] method FirmwareVersion? GetVersion(string filePath)
+
+## Huddly.Sdk.Upgraders.IFirmwareUpgrader
+interface IFirmwareUpgrader
+property FirmwareVersion DesiredVersion { get; }
+[Obsolete] property SemVersion FirmwareVersion { get; }
+event EventHandler<UpgradeProgressEventArgs> ProgressUpdated
+method Task<Result> Execute(CancellationToken ct = null)
