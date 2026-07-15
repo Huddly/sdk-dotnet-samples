@@ -30,10 +30,10 @@ internal static class BaselineRegenerator
 
         var header = $"# Generated against Huddly.Sdk {TestedSdkVersion.Describe()}";
         var body = string.Join(
-            Environment.NewLine + Environment.NewLine,
+            InterfaceSurface.NewLine + InterfaceSurface.NewLine,
             current.Select(surface => surface.ToText()));
 
-        File.WriteAllText(FindBaselineSourcePath(), header + Environment.NewLine + Environment.NewLine + body + Environment.NewLine);
+        File.WriteAllText(FindBaselineSourcePath(), header + InterfaceSurface.NewLine + InterfaceSurface.NewLine + body + InterfaceSurface.NewLine);
 
         return true;
     }
