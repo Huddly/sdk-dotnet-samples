@@ -15,6 +15,13 @@ on:
     # restore triggered right after a release naturally picks up that release.
     types: [sdk-release-published]
 
+# workflow_dispatch/schedule/repository_dispatch can overlap, and every run pushes to the same
+# fixed branch (auto/contract-baseline-update). Serializing avoids two runs racing on that push;
+# cancel-in-progress is safe since every run redoes the check from scratch rather than resuming.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   api-surface:
     name: API surface contract tests
