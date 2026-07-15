@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Huddly.Sdk.ContractTests</RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Contract\ContractedInterfaces.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Contract\ContractBaseline\**\*.approved.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Floated deliberately, unlike every other PackageReference in this solution (which take
+      their version from Directory.Packages.props): this project's whole job is to verify the
+      latest published Huddly.Sdk / Huddly.Sdk.Extensions against the approved contract baseline,
+      so it always restores the newest release of any major rather than a version someone pinned
+      by hand. Whether a given release is safe to adopt is decided by the contract check itself
+      (see Contract/ContractBaseline/), not by its version number - a same-major release can still
+      break the contract, and a major bump doesn't necessarily break it.
+    -->
+    <PackageReference Include="Huddly.Sdk" VersionOverride="*" />
+    <PackageReference Include="Huddly.Sdk.Extensions" VersionOverride="*" />
+    <PackageReference Include="xunit.v3.mtp-v2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+  </ItemGroup>
+
+</Project>

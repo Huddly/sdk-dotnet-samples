@@ -1,0 +1,82 @@
+name: SDK contract tests
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *" # nightly backstop - catches a release even if the dispatch below is ever missed
+  repository_dispatch:
+    # Fired by sdk-dotnet's publish pipeline right after a new Huddly.Sdk release goes out, so we
+    # don't wait for the nightly run to notice. No payload needed: Huddly.Sdk.ContractTests.csproj
+    # floats to the latest published version of any major (VersionOverride="*"), so a fresh
+    # restore triggered right after a release naturally picks up that release.
+    types: [sdk-release-published]
+
+# workflow_dispatch/schedule/repository_dispatch can overlap, and every run pushes to the same
+# fixed branch (auto/contract-baseline-update) regardless of which ref triggered it - including a
+# workflow_dispatch manually run from a non-default branch. The group is deliberately
+# ref-independent so ALL runs of this workflow are mutually exclusive, not just same-ref ones.
+# cancel-in-progress is safe since every run redoes the check from scratch rather than resuming.
+concurrency:
+  group: sdk-contract-tests-baseline-update
+  cancel-in-progress: true
+
+jobs:
+  api-surface:
+    name: API surface contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build contract tests
+        shell: bash
+        run: dotnet build Huddly.Sdk.ContractTests/Huddly.Sdk.ContractTests.csproj -c Release
+
+      # Reflection-only checks against the Huddly.Sdk/Huddly.Device.Model contract; no hardware needed.
+      # Fails here (and skips everything below) if the latest published SDK version - whatever its
+      # major - lost or resignatured a previously published contract member.
+      - name: Run API surface contract tests
+        shell: bash
+        run: dotnet Huddly.Sdk.ContractTests/bin/Release/*/Huddly.Sdk.ContractTests.dll -trait- "Category=Hardware"
+
+      # Only reached if the step above passed. Ratchets ContractedInterfaces.approved.txt forward
+      # to the shape actually tested, so the next run compares against today's baseline instead of
+      # stale data. Writes into the checked-out source tree; picked up as an uncommitted change by
+      # the PR step below (no rebuild needed since nothing is re-verified in this same job).
+      - name: Regenerate baseline against the tested version
+        shell: bash
+        env:
+          HUDDLY_CONTRACT_UPDATE_BASELINE: "1"
+        run: dotnet Huddly.Sdk.ContractTests/bin/Release/*/Huddly.Sdk.ContractTests.dll -trait- "Category=Hardware"
+
+      # No-ops if the regenerated file is byte-identical to what's already committed. Reuses the
+      # same branch/PR across runs instead of piling up a new PR every night.
+      - name: Open PR with the updated baseline
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: Huddly.Sdk.ContractTests/Contract/ContractBaseline/ContractedInterfaces.approved.txt
+          branch: auto/contract-baseline-update
+          delete-branch: true
+          commit-message: "Auto-update contract baseline (non-breaking SDK update)"
+          title: "Auto-update contract baseline (non-breaking SDK update)"
+          body: |
+            The latest published Huddly.Sdk / Huddly.Sdk.Extensions release introduced no breaking
+            changes against the currently approved contract baseline, so this PR ratchets
+            `ContractedInterfaces.approved.txt` forward to match it.
+
+            Generated automatically by the "SDK contract tests" workflow (run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+            Review the diff, then merge to accept this as the new approved baseline.
+
+  # DeviceFirmwareContractTests (Category=Hardware) is intentionally NOT run here. It needs a real
+  # USB/IP Huddly device attached, and this repo has no CI infrastructure for that (see the
+  # deliberate decision not to depend on sdk-dotnet's private VPN/Jenkins bridge from a public
+  # repo). Run it manually on a machine with a device connected instead:
+  #   dotnet build Huddly.Sdk.ContractTests -c Release
+  #   dotnet Huddly.Sdk.ContractTests/bin/Release/*/Huddly.Sdk.ContractTests.dll -trait "Category=Hardware"
