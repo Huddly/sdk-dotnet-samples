@@ -184,6 +184,7 @@ internal static class ApiSurfaceGenerator
             var tick = name.IndexOf('`');
             if (tick > 0)
                 name = name[..tick];
+            name = Qualify(type, name);
 
             var typeArgs = type.GetGenericArguments();
             var argInfos = info?.GenericTypeArguments;
@@ -194,7 +195,7 @@ internal static class ApiSurfaceGenerator
         }
         else
         {
-            core = KeywordAliases.GetValueOrDefault(type, type.Name);
+            core = KeywordAliases.TryGetValue(type, out var alias) ? alias : Qualify(type, type.Name);
         }
 
         if (info is not null && !type.IsValueType && info.ReadState == NullabilityState.Nullable)
@@ -202,6 +203,19 @@ internal static class ApiSurfaceGenerator
 
         return core;
     }
+
+    /// <summary>
+    /// Namespace-qualifies a rendered type name so two distinct CLR types that happen to share a
+    /// simple name (e.g. an SDK-defined "Result" moved to a different sub-namespace) can never
+    /// render identically and silently evade breaking-change detection. Left bare for
+    /// System.*-namespaced types (Task, Dictionary, CancellationToken, etc.) since those are
+    /// effectively global, stable, and would otherwise bloat every line of the baseline for a risk
+    /// that doesn't apply to them.
+    /// </summary>
+    private static string Qualify(Type type, string simpleName) =>
+        type.Namespace is not null && !type.Namespace.StartsWith("System", StringComparison.Ordinal)
+            ? $"{type.Namespace}.{simpleName}"
+            : simpleName;
 
     private static readonly Dictionary<Type, string> KeywordAliases = new()
     {
