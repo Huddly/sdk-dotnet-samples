@@ -16,8 +16,10 @@ internal static class GitHubActionsAnnotations
         if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != "true")
             return;
 
-        var titlePart = title is null ? "" : $" title={title}";
-        var sanitized = message.Replace("%", "%25").Replace("\r", "%0D").Replace("\n", "%0A");
-        Console.WriteLine($"::{level}{titlePart}::{sanitized}");
+        var titlePart = title is null ? "" : $" title={Sanitize(title)}";
+        Console.WriteLine($"::{level}{titlePart}::{Sanitize(message)}");
     }
+
+    private static string Sanitize(string value) =>
+        value.Replace("%", "%25").Replace("\r", "%0D").Replace("\n", "%0A");
 }
