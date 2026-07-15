@@ -77,9 +77,9 @@ method Task<Huddly.Sdk.Models.Result> SetFramingZoneToggle(Huddly.Sdk.Models.Tog
 
 ## Huddly.Sdk.Gateways.IFirmwareApi
 interface IFirmwareApi
-[Get] method Task<Refit.ApiResponse<Dictionary<string, List<Huddly.Sdk.Gateways.FirmwareInfoResponse>>>> GetFwListForAllDevices(Huddly.Sdk.Models.FirmwareChannel channel, Dictionary<string, string> queryParams, CancellationToken ct)
-[Get] method Task<Refit.ApiResponse<Dictionary<string, List<Huddly.Sdk.Gateways.FirmwareInfoResponse>>>> GetFwListForAllDevices(Huddly.Sdk.Models.FirmwareChannel channel, int fwListLength, CancellationToken ct)
-[Get] method Task<Refit.ApiResponse<Huddly.Sdk.Gateways.FirmwareInfoResponse>> GetLatestFirmware(Huddly.Sdk.Gateways.FirmwareTarget target, Huddly.Sdk.Models.FirmwareChannel channel, Dictionary<string, string> queryParams, CancellationToken ct)
+[Refit.Get] method Task<Refit.ApiResponse<Dictionary<string, List<Huddly.Sdk.Gateways.FirmwareInfoResponse>>>> GetFwListForAllDevices(Huddly.Sdk.Models.FirmwareChannel channel, Dictionary<string, string> queryParams, CancellationToken ct)
+[Refit.Get] method Task<Refit.ApiResponse<Dictionary<string, List<Huddly.Sdk.Gateways.FirmwareInfoResponse>>>> GetFwListForAllDevices(Huddly.Sdk.Models.FirmwareChannel channel, int fwListLength, CancellationToken ct)
+[Refit.Get] method Task<Refit.ApiResponse<Huddly.Sdk.Gateways.FirmwareInfoResponse>> GetLatestFirmware(Huddly.Sdk.Gateways.FirmwareTarget target, Huddly.Sdk.Models.FirmwareChannel channel, Dictionary<string, string> queryParams, CancellationToken ct)
 
 ## Huddly.Sdk.Heartbeat.IDeviceHeartbeat
 interface IDeviceHeartbeat

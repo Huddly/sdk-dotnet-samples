@@ -11,13 +11,15 @@ internal static class GitHubActionsAnnotations
 
     public static void Warning(string message, string? title = null) => Emit("warning", message, title);
 
-    private static void Emit(string level, string message, string? title)
+    /// <summary>Internal (rather than private) and takes an optional writer so tests can capture
+    /// output without redirecting the real, process-wide Console.Out.</summary>
+    internal static void Emit(string level, string message, string? title, TextWriter? writer = null)
     {
         if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != "true")
             return;
 
         var titlePart = title is null ? "" : $" title={Sanitize(title)}";
-        Console.WriteLine($"::{level}{titlePart}::{Sanitize(message)}");
+        (writer ?? Console.Out).WriteLine($"::{level}{titlePart}::{Sanitize(message)}");
     }
 
     private static string Sanitize(string value) =>

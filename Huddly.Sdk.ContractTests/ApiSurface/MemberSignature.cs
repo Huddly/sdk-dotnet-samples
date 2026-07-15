@@ -55,14 +55,27 @@ internal readonly record struct MemberSignature(string Identity, IReadOnlyList<s
         return identityLine[..(open + 1)] + string.Join(", ", strippedParameters) + identityLine[close..];
     }
 
+    /// <summary>
+    /// Finds the outermost bracket pair ending at the line's last closeChar, matching depth
+    /// backward so an unrelated earlier bracket of the same kind - e.g. the array-type brackets in
+    /// an indexer's "List&lt;string[]&gt; Item[int index]" - can't be mistaken for the real pair.
+    /// </summary>
     private static (int Open, int Close)? FindBracketPair(string text, char openChar, char closeChar)
     {
-        var open = text.IndexOf(openChar);
-        if (open < 0)
+        var close = text.LastIndexOf(closeChar);
+        if (close < 0)
             return null;
 
-        var close = text.LastIndexOf(closeChar);
-        return close < open ? null : (open, close);
+        var depth = 0;
+        for (var i = close; i >= 0; i--)
+        {
+            if (text[i] == closeChar)
+                depth++;
+            else if (text[i] == openChar && --depth == 0)
+                return (i, close);
+        }
+
+        return null;
     }
 
     private static string StripParameter(string parameter)
@@ -95,27 +108,16 @@ internal readonly record struct MemberSignature(string Identity, IReadOnlyList<s
         if (text.Length == 0)
             return [];
 
+        var depths = AngleBracketDepths(text);
         var parts = new List<string>();
-        var depth = 0;
         var start = 0;
 
         for (var i = 0; i < text.Length; i++)
         {
-            switch (text[i])
+            if (text[i] == separator && depths[i] == 0)
             {
-                case '<':
-                    depth++;
-                    break;
-                case '>':
-                    depth--;
-                    break;
-                default:
-                    if (text[i] == separator && depth == 0)
-                    {
-                        parts.Add(text[start..i].Trim());
-                        start = i + 1;
-                    }
-                    break;
+                parts.Add(text[start..i].Trim());
+                start = i + 1;
             }
         }
 
@@ -126,25 +128,34 @@ internal readonly record struct MemberSignature(string Identity, IReadOnlyList<s
     /// <summary>Finds the last space outside any angle-bracket nesting - the boundary between a parameter's type and its name.</summary>
     private static int LastTopLevelSpace(string text)
     {
-        var depth = 0;
+        var depths = AngleBracketDepths(text);
         var lastSpace = -1;
 
         for (var i = 0; i < text.Length; i++)
         {
-            switch (text[i])
-            {
-                case '<':
-                    depth++;
-                    break;
-                case '>':
-                    depth--;
-                    break;
-                case ' ' when depth == 0:
-                    lastSpace = i;
-                    break;
-            }
+            if (text[i] == ' ' && depths[i] == 0)
+                lastSpace = i;
         }
 
         return lastSpace;
+    }
+
+    /// <summary>The angle-bracket nesting depth at each character, so callers can tell a top-level character (depth 0) from one inside a generic type argument list.</summary>
+    private static int[] AngleBracketDepths(string text)
+    {
+        var depths = new int[text.Length];
+        var depth = 0;
+
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (text[i] == '<')
+                depth++;
+            else if (text[i] == '>')
+                depth--;
+
+            depths[i] = depth;
+        }
+
+        return depths;
     }
 }

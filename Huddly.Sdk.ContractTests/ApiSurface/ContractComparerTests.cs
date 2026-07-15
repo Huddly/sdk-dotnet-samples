@@ -59,6 +59,28 @@ public class ContractComparerTests
     }
 
     [Fact]
+    public void FindBreakingChanges_IgnoresAnIndexerParameterRenameWhenTheIndexersOwnTypeContainsArrayBrackets()
+    {
+        var baseline = Surface("A.IFoo", "interface IFoo", "property List<string[]> Item[int index] { get; set; }");
+        var current = Surface("A.IFoo", "interface IFoo", "property List<string[]> Item[int i] { get; set; }");
+
+        var breaks = ContractComparer.FindBreakingChanges([baseline], [current]);
+
+        Assert.Empty(breaks);
+    }
+
+    [Fact]
+    public void FindBreakingChanges_ReportsAddingAGenericMethodTypeParameter()
+    {
+        var baseline = Surface("A.IFoo", "interface IFoo", "method T0 Run<T0>(Func<T0> action)");
+        var current = Surface("A.IFoo", "interface IFoo", "method T0 Run<T0, T1>(Func<T0> action)");
+
+        var breaks = ContractComparer.FindBreakingChanges([baseline], [current]);
+
+        Assert.Single(breaks);
+    }
+
+    [Fact]
     public void FindBreakingChanges_IgnoresADefaultValueChange()
     {
         var baseline = Surface("A.IFoo", "interface IFoo", "method void Bar(int value = 1)");

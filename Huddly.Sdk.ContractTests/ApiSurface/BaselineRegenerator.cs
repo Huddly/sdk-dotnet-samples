@@ -15,6 +15,10 @@ internal static class BaselineRegenerator
 
     private static readonly Lazy<bool> Ran = new(Regenerate);
 
+    /// <summary>Shared by both gate tests so the message can't drift out of sync between them.</summary>
+    public const string RegeneratedMessage =
+        "HUDDLY_CONTRACT_UPDATE_BASELINE is set: regenerated the baseline from the current SDK. Review the git diff and commit it.";
+
     public static bool IsEnabled => Environment.GetEnvironmentVariable(EnableEnvironmentVariable) == "1";
 
     /// <summary>Writes the current surface as the new approved baseline if enabled. Returns whether it ran.</summary>

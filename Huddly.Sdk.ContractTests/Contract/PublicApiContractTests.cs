@@ -18,7 +18,7 @@ public class PublicApiContractTests(ITestOutputHelper output)
     {
         if (BaselineRegenerator.RunIfEnabled())
         {
-            output.WriteLine("HUDDLY_CONTRACT_UPDATE_BASELINE is set: regenerated the baseline from the current SDK. Review the git diff and commit it.");
+            output.WriteLine(BaselineRegenerator.RegeneratedMessage);
             return;
         }
 

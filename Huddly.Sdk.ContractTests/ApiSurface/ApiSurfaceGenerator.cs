@@ -16,22 +16,32 @@ internal static class ApiSurfaceGenerator
         IEnumerable<Assembly> assemblies,
         IReadOnlyCollection<string> contractedInterfaceNames)
     {
-        var typesByName = assemblies
-            .SelectMany(a => a.GetExportedTypes())
-            .Where(t => t.IsInterface && (t.IsPublic || t.IsNestedPublic))
-            .ToDictionary(t => t.FullName!, t => t);
+        var typesByName = new Dictionary<string, Type>();
+        foreach (var type in assemblies.SelectMany(a => a.GetExportedTypes()).Where(t => t.IsInterface && (t.IsPublic || t.IsNestedPublic)))
+        {
+            if (!typesByName.TryAdd(type.FullName!, type))
+                throw new InvalidOperationException($"Multiple exported interfaces share the full name '{type.FullName}' across the scanned assemblies.");
+        }
+
+        var nullability = new NullabilityInfoContext();
 
         return contractedInterfaceNames
             .Select(name => typesByName.TryGetValue(name, out var type)
-                ? new InterfaceSurface(name, Found: true, DescribeMembers(type))
+                ? new InterfaceSurface(name, Found: true, DescribeMembers(type, nullability))
                 : new InterfaceSurface(name, Found: false, Array.Empty<string>()))
             .OrderBy(s => s.InterfaceName, StringComparer.Ordinal)
             .ToList();
     }
 
-    internal static IReadOnlyList<string> DescribeMembers(Type type)
+    /// <summary>
+    /// <paramref name="nullability"/> defaults to a fresh context when omitted (tests calling this
+    /// directly for a single type don't need to care); Generate() passes one shared context across
+    /// every contracted interface so its internal cache benefits from types repeated across them
+    /// (CancellationToken, Task&lt;T&gt;, Result&lt;T&gt;, etc.).
+    /// </summary>
+    internal static IReadOnlyList<string> DescribeMembers(Type type, NullabilityInfoContext? nullability = null)
     {
-        var nullability = new NullabilityInfoContext();
+        nullability ??= new NullabilityInfoContext();
         var lines = new List<string> { DescribeInterfaceHeader(type) };
 
         lines.AddRange(type.GetProperties()
@@ -60,7 +70,7 @@ internal static class ApiSurfaceGenerator
 
     private static string DescribeProperty(PropertyInfo property, NullabilityInfoContext nullability)
     {
-        var typeText = FormatType(property.PropertyType, SafeCreate(nullability, property));
+        var typeText = FormatType(property.PropertyType, SafeCreate(() => nullability.Create(property)));
 
         var accessors = new List<string>();
         if (property.GetMethod is not null)
@@ -93,21 +103,33 @@ internal static class ApiSurfaceGenerator
 
     private static string DescribeMethod(MethodInfo method, NullabilityInfoContext nullability)
     {
-        var generics = method.IsGenericMethodDefinition
-            ? "<" + string.Join(", ", method.GetGenericArguments().Select(t => t.Name)) + ">"
-            : "";
+        Dictionary<Type, string>? genericParamNames = null;
+        var generics = "";
 
-        var returnType = FormatType(method.ReturnType, SafeCreate(nullability, method.ReturnParameter));
-        var parameters = string.Join(", ", method.GetParameters().Select(p => DescribeParameter(p, nullability)));
+        if (method.IsGenericMethodDefinition)
+        {
+            var typeParams = method.GetGenericArguments();
+            genericParamNames = new Dictionary<Type, string>();
+            for (var i = 0; i < typeParams.Length; i++)
+                genericParamNames[typeParams[i]] = $"T{i}";
+
+            generics = "<" + string.Join(", ", typeParams.Select(t => genericParamNames[t])) + ">";
+        }
+
+        var returnType = FormatType(method.ReturnType, SafeCreate(() => nullability.Create(method.ReturnParameter)), genericParamNames);
+        var parameters = string.Join(", ", method.GetParameters().Select(p => DescribeParameter(p, nullability, genericParamNames)));
         var attributes = FormatAttributes(method.GetCustomAttributesData());
 
         return $"{attributes}method {returnType} {method.Name}{generics}({parameters})";
     }
 
-    private static string DescribeParameter(ParameterInfo parameter, NullabilityInfoContext nullability)
+    private static string DescribeParameter(
+        ParameterInfo parameter,
+        NullabilityInfoContext nullability,
+        IReadOnlyDictionary<Type, string>? genericParamNames = null)
     {
         var modifier = parameter.IsOut ? "out " : parameter.IsIn ? "in " : IsByRef(parameter) ? "ref " : "";
-        var typeText = FormatType(UnwrapByRef(parameter.ParameterType), SafeCreate(nullability, parameter));
+        var typeText = FormatType(UnwrapByRef(parameter.ParameterType), SafeCreate(() => nullability.Create(parameter)), genericParamNames);
         var defaultText = parameter.HasDefaultValue ? $" = {FormatDefaultValue(parameter.DefaultValue)}" : "";
 
         return $"{modifier}{typeText} {parameter.Name}{defaultText}";
@@ -123,15 +145,9 @@ internal static class ApiSurfaceGenerator
     private static bool IsRequired(PropertyInfo property) =>
         property.CustomAttributes.Any(a => a.AttributeType.FullName == "System.Runtime.CompilerServices.RequiredMemberAttribute");
 
-    private static NullabilityInfo? SafeCreate(NullabilityInfoContext context, PropertyInfo property)
+    private static NullabilityInfo? SafeCreate(Func<NullabilityInfo> create)
     {
-        try { return context.Create(property); }
-        catch { return null; }
-    }
-
-    private static NullabilityInfo? SafeCreate(NullabilityInfoContext context, ParameterInfo parameter)
-    {
-        try { return context.Create(parameter); }
+        try { return create(); }
         catch { return null; }
     }
 
@@ -150,7 +166,7 @@ internal static class ApiSurfaceGenerator
             .Where(a => a.AttributeType.Namespace is null
                         || !a.AttributeType.Namespace.StartsWith("System.Runtime.CompilerServices", StringComparison.Ordinal))
             .Where(a => a.AttributeType.FullName != "System.Reflection.DefaultMemberAttribute")
-            .Select(a => StripAttributeSuffix(a.AttributeType.Name))
+            .Select(a => Qualify(a.AttributeType, StripAttributeSuffix(a.AttributeType.Name)))
             .OrderBy(n => n, StringComparer.Ordinal)
             .ToList();
 
@@ -165,20 +181,29 @@ internal static class ApiSurfaceGenerator
             : name;
     }
 
-    private static string FormatType(Type type, NullabilityInfo? info)
+    private static string FormatType(Type type, NullabilityInfo? info, IReadOnlyDictionary<Type, string>? genericParamNames = null)
     {
         if (type == typeof(void))
             return "void";
 
         var underlying = Nullable.GetUnderlyingType(type);
         if (underlying is not null)
-            return FormatType(underlying, null) + "?";
-
-        if (type.IsArray)
-            return FormatType(type.GetElementType()!, info?.ElementType) + "[]";
+            return FormatType(underlying, null, genericParamNames) + "?";
 
         string core;
-        if (type.IsGenericType)
+        if (genericParamNames is not null && genericParamNames.TryGetValue(type, out var placeholder))
+        {
+            // type is one of the enclosing method's own generic type parameters (e.g. "TResult").
+            // Rendered positionally instead of by its real name, same reasoning as stripping a
+            // regular parameter's name: renaming a method's own type parameter doesn't break a
+            // compiled caller, so its real name must not leak into the contract identity.
+            core = placeholder;
+        }
+        else if (type.IsArray)
+        {
+            core = FormatType(type.GetElementType()!, info?.ElementType, genericParamNames) + "[]";
+        }
+        else if (type.IsGenericType)
         {
             var name = type.Name;
             var tick = name.IndexOf('`');
@@ -189,7 +214,7 @@ internal static class ApiSurfaceGenerator
             var typeArgs = type.GetGenericArguments();
             var argInfos = info?.GenericTypeArguments;
             var args = typeArgs.Select((t, i) =>
-                FormatType(t, argInfos is { Length: > 0 } && i < argInfos.Length ? argInfos[i] : null));
+                FormatType(t, argInfos is { Length: > 0 } && i < argInfos.Length ? argInfos[i] : null, genericParamNames));
 
             core = new StringBuilder(name).Append('<').AppendJoin(", ", args).Append('>').ToString();
         }
@@ -213,7 +238,7 @@ internal static class ApiSurfaceGenerator
     /// that doesn't apply to them.
     /// </summary>
     private static string Qualify(Type type, string simpleName) =>
-        type.Namespace is not null && !type.Namespace.StartsWith("System", StringComparison.Ordinal)
+        type.Namespace is not null && type.Namespace != "System" && !type.Namespace.StartsWith("System.", StringComparison.Ordinal)
             ? $"{type.Namespace}.{simpleName}"
             : simpleName;
 
