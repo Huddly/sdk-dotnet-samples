@@ -1,5 +1,5 @@
 # Predefined set of interfaces considered part of the public Huddly SDK contract.
-# One fully-qualified interface name per line. Blank lines and lines starting with '#' are ignored.
+# One fully-qualified interface name per line (use Type.FullName; nested interfaces use '+' between outer and inner types). Blank lines and lines starting with '#' are ignored.
 #
 # This list is the source of truth for the contract tests:
 #   - a breaking change to a listed interface's members fails the build.

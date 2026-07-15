@@ -16,10 +16,12 @@ on:
     types: [sdk-release-published]
 
 # workflow_dispatch/schedule/repository_dispatch can overlap, and every run pushes to the same
-# fixed branch (auto/contract-baseline-update). Serializing avoids two runs racing on that push;
+# fixed branch (auto/contract-baseline-update) regardless of which ref triggered it - including a
+# workflow_dispatch manually run from a non-default branch. The group is deliberately
+# ref-independent so ALL runs of this workflow are mutually exclusive, not just same-ref ones.
 # cancel-in-progress is safe since every run redoes the check from scratch rather than resuming.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: sdk-contract-tests-baseline-update
   cancel-in-progress: true
 
 jobs:
