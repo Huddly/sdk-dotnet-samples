@@ -34,7 +34,14 @@ jobs:
     name: API surface contract tests
     runs-on: ubuntu-latest
     steps:
+      # TEMPORARY - testing only, remove before merging (alongside the pull_request trigger above):
+      # for a pull_request event, checkout defaults to a detached-HEAD merge commit, which breaks
+      # peter-evans/create-pull-request's own base-branch auto-detection later in this job.
+      # github.head_ref is only populated for pull_request events, so this is a no-op for the real
+      # triggers (workflow_dispatch/schedule/repository_dispatch), which never have this problem.
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
 
       - uses: actions/setup-dotnet@v5
         with:
