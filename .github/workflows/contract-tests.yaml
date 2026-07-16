@@ -3,6 +3,7 @@ name: SDK contract tests
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 on:
   workflow_dispatch:
@@ -109,6 +110,43 @@ jobs:
 
           jq -n --arg text "$TEXT" '{text: $text}' \
             | curl -sS --fail -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
+
+      # Persistent, trackable counterpart to the Slack ping above: reuses one open issue across
+      # consecutive failing runs (found by a fixed title, so it never duplicates), comments instead
+      # of re-filing while still failing, and auto-closes it the first time a run passes again.
+      - name: File or update tracking issue for a breaking change
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          NOTICES_FILE: ${{ runner.temp }}/contract-notices.txt
+        run: |
+          TITLE="SDK contract check is failing"
+          EXISTING=$(gh issue list --search "\"$TITLE\" in:title" --state open --json number --jq '.[0].number // ""')
+
+          if [ "$CHECK_OUTCOME" = "success" ]; then
+            if [ -n "$EXISTING" ]; then
+              gh issue comment "$EXISTING" --body "Resolved as of $RUN_URL - closing."
+              gh issue close "$EXISTING"
+            fi
+            exit 0
+          fi
+
+          if [ -s "$NOTICES_FILE" ]; then
+            DETAILS=$(grep '^❌' "$NOTICES_FILE" || true)
+          else
+            DETAILS="(see the run for details)"
+          fi
+
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "Still failing as of $RUN_URL."$'\n'"$DETAILS"
+          else
+            gh issue create --title "$TITLE" \
+              --body "Breaking change(s) detected in the public Huddly SDK contract:"$'\n'"$DETAILS"$'\n\n'"Run: $RUN_URL"
+          fi
 
   # DeviceFirmwareContractTests (Category=Hardware) is intentionally NOT run here. It needs a real
   # USB/IP Huddly device attached, and this repo has no CI infrastructure for that (see the
