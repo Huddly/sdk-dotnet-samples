@@ -1,4 +1,5 @@
 using Huddly.Sdk.ContractTests.ApiSurface;
+using System.Linq;
 
 namespace Huddly.Sdk.ContractTests.Contract;
 
@@ -29,6 +30,13 @@ public class PublicApiContractTests(ITestOutputHelper output)
         var (baseline, current) = ContractSnapshot.Load();
 
         var breakingChanges = ContractComparer.FindBreakingChanges(baseline, current);
+        foreach (var message in from change in breakingChanges
+                                let message = $"{change.InterfaceName}: {change.Description}"
+                                select message)
+        {
+            GitHubActionsAnnotations.Error(message, "Breaking Huddly SDK contract change");
+            CiNoticeFile.Append($"❌ {message}");
+        }
 
         Assert.True(breakingChanges.Count == 0, BuildFailureMessage(breakingChanges, testedVersion));
     }

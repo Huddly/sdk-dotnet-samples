@@ -43,7 +43,10 @@ jobs:
       # Fails here (and skips everything below) if the latest published SDK version - whatever its
       # major - lost or resignatured a previously published contract member.
       - name: Run API surface contract tests
+        id: check
         shell: bash
+        env:
+          HUDDLY_CONTRACT_NOTICES_FILE: ${{ runner.temp }}/contract-notices.txt
         run: dotnet Huddly.Sdk.ContractTests/bin/Release/*/Huddly.Sdk.ContractTests.dll -trait- "Category=Hardware"
 
       # Only reached if the step above passed. Ratchets ContractedInterfaces.approved.txt forward
@@ -73,6 +76,39 @@ jobs:
 
             Generated automatically by the "SDK contract tests" workflow (run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
             Review the diff, then merge to accept this as the new approved baseline.
+
+      # Runs regardless of pass/fail (if: always()) so a breaking-change failure is reported, not
+      # just a green run. continue-on-error: true so a Slack outage (bad webhook, network blip)
+      # can never fail the job the actual contract check already decided the outcome of. Builds
+      # the payload with jq rather than string interpolation - sdk-dotnet's own nightly-CI Slack
+      # script hit real bugs (newlines/emoji/quoting breaking hand-rolled JSON) before switching to
+      # this approach.
+      - name: Notify Slack
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_CONTRACT_TESTS_CI_WEBHOOK_URL }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          NOTICES_FILE: ${{ runner.temp }}/contract-notices.txt
+        run: |
+          if [ "$CHECK_OUTCOME" = "success" ]; then
+            HEADER=":white_check_mark: SDK contract tests passed"
+          else
+            HEADER=":x: SDK contract tests failed"
+          fi
+
+          if [ -s "$NOTICES_FILE" ]; then
+            DETAILS=$(cat "$NOTICES_FILE")
+          else
+            DETAILS="(no breaking changes or new members since the last approved baseline)"
+          fi
+
+          TEXT="$HEADER — <$RUN_URL|View run>"$'\n'"$DETAILS"
+
+          jq -n --arg text "$TEXT" '{text: $text}' \
+            | curl -sS --fail -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
 
   # DeviceFirmwareContractTests (Category=Hardware) is intentionally NOT run here. It needs a real
   # USB/IP Huddly device attached, and this repo has no CI infrastructure for that (see the

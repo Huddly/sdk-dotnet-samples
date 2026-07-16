@@ -9,9 +9,9 @@ namespace Huddly.Sdk.ContractTests.Contract;
 /// support them, so they're worth a human looking at.
 ///
 /// This test always passes; its job is visibility, not gatekeeping (see PublicApiContractTests
-/// for the failing checks). It emits a GitHub Actions warning annotation per notice so they show
-/// up on the workflow run even though the job goes green - the natural hook point to wire up a
-/// Slack post or an auto-filed tracking issue later, without turning this into a flaky gate.
+/// for the failing checks). It emits a GitHub Actions warning annotation per notice, and appends
+/// one to CiNoticeFile (read back by contract-tests.yaml's Slack step), so they're visible even
+/// though the job goes green - without turning this into a flaky gate.
 /// </summary>
 public class NewMemberNotificationTests(ITestOutputHelper output)
 {
@@ -42,6 +42,7 @@ public class NewMemberNotificationTests(ITestOutputHelper output)
             var message = $"{notice.InterfaceName}: {notice.Description}";
             output.WriteLine($"  - {message}");
             GitHubActionsAnnotations.Warning(message, "New Huddly SDK contract member");
+            CiNoticeFile.Append($"⚠️ {message}");
         }
 
         output.WriteLine("""

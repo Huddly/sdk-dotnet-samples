@@ -25,6 +25,19 @@ public class GitHubActionsAnnotationsTests
     }
 
     [Fact]
+    public void Emit_SupportsTheErrorLevelUsedByError()
+    {
+        var writer = new StringWriter();
+
+        WithGitHubActionsEnabled(() =>
+            GitHubActionsAnnotations.Emit("error", "breaking change", "Breaking Huddly SDK contract change", writer));
+
+        Assert.Equal(
+            "::error title=Breaking Huddly SDK contract change::breaking change" + Environment.NewLine,
+            writer.ToString());
+    }
+
+    [Fact]
     public void Emit_IsANoOpOutsideGitHubActions()
     {
         var writer = new StringWriter();
