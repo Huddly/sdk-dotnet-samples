@@ -28,7 +28,7 @@ method Task<Huddly.Sdk.Models.Result<Huddly.Sdk.Models.PerspectiveCorrection>> G
 method Task<Huddly.Sdk.Models.Result<double>> GetSaturation(CancellationToken ct = null)
 method Task<Huddly.Sdk.Models.Result> PersistCurrentImageSettings(CancellationToken ct = null)
 method Task<Huddly.Sdk.Models.Result> RestorePersistentImageSettings(CancellationToken ct = null)
-method Task<Huddly.Sdk.Models.Result> SetBrightness(double value, CancellationToken ct = null)
+method Task<Huddly.Sdk.Models.Result> SetBrightness(double val, CancellationToken ct = null)
 method Task<Huddly.Sdk.Models.Result> SetFaceBasedExposure(Huddly.Sdk.Models.Toggle value, CancellationToken ct = null)
 [Obsolete] method Task<Huddly.Sdk.Models.Result> SetPerspectiveCorrection(Huddly.Sdk.Models.PerspectiveCorrection value, CancellationToken ct = null)
 method Task<Huddly.Sdk.Models.Result> SetSaturation(double value, CancellationToken ct = null)
