@@ -33,6 +33,12 @@ jobs:
   api-surface:
     name: API surface contract tests
     runs-on: ubuntu-latest
+    # TEMPORARY - testing only, remove before merging: branches-ignore on the pull_request trigger
+    # only filters by base branch, not head branch, so it can't exclude the PR this workflow's own
+    # "Open PR" step creates (head=auto/contract-baseline-update, base=main) - only github.head_ref
+    # can see the head branch, so the exclusion has to live here instead. head_ref is empty for the
+    # real triggers (workflow_dispatch/schedule/repository_dispatch), so this is a no-op for them.
+    if: github.head_ref != 'auto/contract-baseline-update'
     steps:
       # TEMPORARY - testing only, remove before merging (alongside the pull_request trigger above):
       # for a pull_request event, checkout defaults to a detached-HEAD merge commit, which breaks
