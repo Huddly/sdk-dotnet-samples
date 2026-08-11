@@ -11,6 +11,8 @@ internal static class GitHubActionsAnnotations
 
     public static void Warning(string message, string? title = null) => Emit("warning", message, title);
 
+    public static void Error(string message, string? title = null) => Emit("error", message, title);
+
     /// <summary>Internal (rather than private) and takes an optional writer so tests can capture
     /// output without redirecting the real, process-wide Console.Out.</summary>
     internal static void Emit(string level, string message, string? title, TextWriter? writer = null)

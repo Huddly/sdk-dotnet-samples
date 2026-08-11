@@ -1,12 +1,14 @@
 using Huddly.Sdk.ContractTests.ApiSurface;
+using System.Linq;
 
 namespace Huddly.Sdk.ContractTests.Contract;
 
 /// <summary>
 /// Fails the build if any interface in ContractedInterfaces.txt has lost a previously published
-/// member - a renamed/removed method, a method/property/event whose parameter types or return
-/// type changed, an attribute removed from a member that still exists, or a member's `required`
-/// modifier changing either way - relative to the checked-in baseline in Contract/ContractBaseline/.
+/// member - a renamed/removed method, a method/property/event whose staticness, parameter types,
+/// return type, nullability, or generic constraints changed, an attribute removed from a member
+/// that still exists, or a member's `required` modifier changing either way - relative to the
+/// checked-in baseline in Contract/ContractBaseline/.
 ///
 /// Brand-new members and brand-new (additive) attributes are intentionally NOT treated as
 /// failures here; they are surfaced separately as warnings, see NewMemberNotificationTests.
@@ -25,10 +27,18 @@ public class PublicApiContractTests(ITestOutputHelper output)
         var testedVersion = TestedSdkVersion.Describe();
         output.WriteLine($"Tested against Huddly.Sdk {testedVersion}.");
         GitHubActionsAnnotations.Notice($"Contract tests ran against Huddly.Sdk {testedVersion}.");
+        CiNoticeSink.Append($"Tested against Huddly.Sdk {testedVersion}.");
 
         var (baseline, current) = ContractSnapshot.Load();
 
         var breakingChanges = ContractComparer.FindBreakingChanges(baseline, current);
+        foreach (var message in from change in breakingChanges
+                                let message = $"{change.InterfaceName}: {change.Description}"
+                                select message)
+        {
+            GitHubActionsAnnotations.Error(message, "Breaking Huddly SDK contract change");
+            CiNoticeSink.Append($"❌ {message}");
+        }
 
         Assert.True(breakingChanges.Count == 0, BuildFailureMessage(breakingChanges, testedVersion));
     }

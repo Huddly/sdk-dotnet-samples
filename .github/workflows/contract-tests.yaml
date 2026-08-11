@@ -12,9 +12,9 @@ on:
   schedule:
     - cron: "0 4 * * *"
 
-# Guards against two runs (e.g. the schedule and a manual dispatch) overlapping and racing on the
-# baseline commit. cancel-in-progress is safe since every run redoes the check from scratch rather
-# than resuming.
+# Guards against two runs (e.g. the schedule and a manual dispatch) overlapping and double-posting
+# to Slack or racing on the baseline commit. cancel-in-progress is safe since every run redoes the
+# check from scratch rather than resuming.
 concurrency:
   group: sdk-contract-tests
   cancel-in-progress: true
@@ -38,7 +38,10 @@ jobs:
       # Fails here (and skips everything below) if the latest published SDK version - whatever its
       # major - lost or resignatured a previously published contract member.
       - name: Run API surface contract tests
+        id: check
         shell: bash
+        env:
+          HUDDLY_CONTRACT_NOTICES_FILE: ${{ runner.temp }}/contract-notices.txt
         run: dotnet Huddly.Sdk.ContractTests/bin/Release/*/Huddly.Sdk.ContractTests.dll -trait- "Category=Hardware"
 
       # Only reached if the step above passed. Ratchets ContractedInterfaces.approved.txt forward
@@ -132,6 +135,57 @@ jobs:
 
             Generated automatically by the "SDK contract tests" workflow (run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
             Review the diff, then merge to adopt this version across the samples.
+
+      # Only fires when the PR step actually created or updated something (pull-request-operation
+      # is "none" when Directory.Packages.props ended up byte-identical, e.g. re-running against
+      # the same version) - stays silent rather than pinging Slack for a no-op run.
+      - name: Notify Slack about the version-bump PR
+        if: github.event_name == 'schedule' && steps.bump-pr.outputs.pull-request-operation != 'none'
+        continue-on-error: true
+        shell: bash
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_SDK_DOTNET_CI_WEBHOOK_URL }}
+          PR_URL: ${{ steps.bump-pr.outputs.pull-request-url }}
+          PR_OPERATION: ${{ steps.bump-pr.outputs.pull-request-operation }}
+          VERSION: ${{ steps.tested-version.outputs.version }}
+        run: |
+          TEXT=":arrow_up: SDK version bump PR $PR_OPERATION: Huddly.Sdk / Huddly.Sdk.Extensions -> $VERSION"$'\n'"<$PR_URL|Review and merge>"
+
+          jq -n --arg text "$TEXT" '{text: $text}' \
+            | curl -sS --fail -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
+
+      # Runs regardless of pass/fail (if: always()) so a breaking-change failure is reported, not
+      # just a green run. continue-on-error: true so a Slack outage (bad webhook, network blip)
+      # can never fail the job the actual contract check already decided the outcome of. Builds
+      # the payload with jq rather than string interpolation - sdk-dotnet's own nightly-CI Slack
+      # script hit real bugs (newlines/emoji/quoting breaking hand-rolled JSON) before switching to
+      # this approach.
+      - name: Notify Slack
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_SDK_DOTNET_CI_WEBHOOK_URL }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          NOTICES_FILE: ${{ runner.temp }}/contract-notices.txt
+        run: |
+          if [ "$CHECK_OUTCOME" = "success" ]; then
+            HEADER=":white_check_mark: SDK contract tests passed"
+          else
+            HEADER=":x: SDK contract tests failed"
+          fi
+
+          if [ -s "$NOTICES_FILE" ]; then
+            DETAILS=$(cat "$NOTICES_FILE")
+          else
+            DETAILS="(no breaking changes or new members since the last approved baseline)"
+          fi
+
+          TEXT="$HEADER — <$RUN_URL|View run>"$'\n'"$DETAILS"
+
+          jq -n --arg text "$TEXT" '{text: $text}' \
+            | curl -sS --fail -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
 
   # DeviceFirmwareContractTests (Category=Hardware) isn't run here - it needs a real USB/IP
   # device, which sdk-dotnet's nightly workflow provides (contract-tests-nightly.yml, checking out
