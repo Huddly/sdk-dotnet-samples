@@ -10,7 +10,8 @@ internal sealed record ContractNotice(string InterfaceName, string Description);
 /// Compares a baseline surface against a freshly generated one.
 ///
 /// Breaking (fails the build, see FindBreakingChanges): a contracted interface disappearing, a
-/// member's identity (kind + name + parameter types + return type) disappearing - covering
+/// member's identity (kind/staticness + name + parameter types + return type + generic constraints)
+/// disappearing - covering
 /// renamed, removed, or resignatured methods/properties/events - an attribute being removed from
 /// a member that still exists, or a member's `required` modifier changing either way.
 ///
@@ -40,10 +41,8 @@ internal static class ContractComparer
 
             var currentSignatures = BuildSignatureIndex(currentSurface);
 
-            foreach (var baselineMember in baselineSurface.Members)
+            foreach (var baselineSignature in baselineSurface.Signatures)
             {
-                var baselineSignature = MemberSignature.Parse(baselineMember);
-
                 if (!currentSignatures.TryGetValue(baselineSignature.Identity, out var currentSignature))
                 {
                     breaks.Add(new ContractBreak(baselineSurface.InterfaceName, $"missing or changed: {baselineSignature.Identity}"));
@@ -86,10 +85,8 @@ internal static class ContractComparer
                 ? BuildSignatureIndex(baselineSurface)
                 : new Dictionary<string, MemberSignature>(StringComparer.Ordinal);
 
-            foreach (var currentMember in currentSurface.Members)
+            foreach (var currentSignature in currentSurface.Signatures)
             {
-                var currentSignature = MemberSignature.Parse(currentMember);
-
                 if (!baselineSignatures.TryGetValue(currentSignature.Identity, out var baselineSignature))
                 {
                     notices.Add(new ContractNotice(currentSurface.InterfaceName, $"new member: {currentSignature.Identity}"));
@@ -110,5 +107,5 @@ internal static class ContractComparer
     }
 
     private static Dictionary<string, MemberSignature> BuildSignatureIndex(InterfaceSurface surface) =>
-        surface.Members.Select(MemberSignature.Parse).ToDictionary(s => s.Identity, StringComparer.Ordinal);
+        surface.Signatures.ToDictionary(signature => signature.Identity, StringComparer.Ordinal);
 }

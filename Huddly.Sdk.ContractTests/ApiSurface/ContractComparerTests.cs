@@ -149,6 +149,14 @@ public class ContractComparerTests
     }
 
     [Fact]
+    public void InterfaceSurface_ExposesStructuredSignaturesAtTheTextBoundary()
+    {
+        var surface = Surface("A.IFoo", "interface IFoo", "method void Run(int value = 1)");
+
+        Assert.Equal(["interface IFoo", "method void Run(int)"], surface.Signatures.Select(signature => signature.Identity));
+    }
+
+    [Fact]
     public void FindBreakingChanges_ReportsAByRefModifierAdded()
     {
         var baseline = Surface("A.IFoo", "interface IFoo", "method void Bar(int value)");

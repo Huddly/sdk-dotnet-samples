@@ -10,6 +10,12 @@ internal sealed record InterfaceSurface(string InterfaceName, bool Found, IReadO
     public const string MissingSuffix = " [MISSING]";
 
     /// <summary>
+    /// Structured comparison form, parsed once at the text boundary rather than independently by
+    /// every comparison pass. Members retains the human-readable baseline representation.
+    /// </summary>
+    public IReadOnlyList<MemberSignature> Signatures { get; } = Members.Select(MemberSignature.Parse).ToArray();
+
+    /// <summary>
     /// Fixed rather than Environment.NewLine, so the baseline file is byte-identical whether it
     /// was generated on Windows (developer running the local regeneration workflow) or Linux (the
     /// contract-tests.yaml runner) - otherwise every line would show as changed in a diff purely
