@@ -3,8 +3,12 @@ namespace Huddly.Sdk.ContractTests.ApiSurface;
 /// <summary>
 /// Opt-in mechanism to accept the current SDK's contract shape as the new approved baseline,
 /// instead of comparing against it. Enabled by setting the HUDDLY_CONTRACT_UPDATE_BASELINE
-/// environment variable to "1" before running the contract tests locally - never set in CI, so
-/// this can never silently rewrite the baseline on a build machine.
+/// environment variable to "1", either locally or in the dedicated CI regeneration step in
+/// contract-tests.yaml (a plain env value in the workflow file, not a GitHub secret) that runs
+/// only after the gating contract check has already passed. That step writes into the checked-out
+/// source tree but never merges the result directly - it lands as an uncommitted change that a
+/// separate step commits straight to main, gated on that same passing check - so this can never
+/// silently rewrite the baseline that gates a build.
 ///
 /// Memoized (like ContractSnapshot) so PublicApiContractTests and NewMemberNotificationTests both
 /// checking the flag in the same run doesn't result in two concurrent writes to the same file.

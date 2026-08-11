@@ -10,6 +10,14 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <IsPackable>false</IsPackable>
+
+    <!--
+      Overridable from the command line (-p:HuddlySdkVersionOverride=...) so sdk-dotnet's nightly
+      workflow can point this at the latest pre-release build straight off main (via its own
+      private-feed credentials) without touching this file. Every other caller gets today's
+      behavior: floats to the newest stable release on nuget.org.
+    -->
+    <HuddlySdkVersionOverride Condition="'$(HuddlySdkVersionOverride)' == ''">*</HuddlySdkVersionOverride>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,11 +40,22 @@
       (see Contract/ContractBaseline/), not by its version number - a same-major release can still
       break the contract, and a major bump doesn't necessarily break it.
     -->
-    <PackageReference Include="Huddly.Sdk" VersionOverride="*" />
-    <PackageReference Include="Huddly.Sdk.Extensions" VersionOverride="*" />
+    <PackageReference Include="Huddly.Sdk" VersionOverride="$(HuddlySdkVersionOverride)" />
+    <PackageReference Include="Huddly.Sdk.Extensions" VersionOverride="$(HuddlySdkVersionOverride)" />
     <PackageReference Include="xunit.v3.mtp-v2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" />
   </ItemGroup>
+
+  <!--
+    Cross-platform entry point for intentionally accepting the currently resolved SDK surface.
+    Keeping the environment variable and hardware exclusion here avoids platform-specific shell
+    syntax and prevents a baseline update from trying to discover a physical camera.
+  -->
+  <Target Name="UpdateContractBaseline" DependsOnTargets="Build">
+    <Exec
+      Command="dotnet &quot;$(TargetPath)&quot; -trait- &quot;Category=Hardware&quot;"
+      EnvironmentVariables="HUDDLY_CONTRACT_UPDATE_BASELINE=1" />
+  </Target>
 
 </Project>

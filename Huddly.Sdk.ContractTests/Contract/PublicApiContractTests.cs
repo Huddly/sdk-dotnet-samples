@@ -52,7 +52,7 @@ public class PublicApiContractTests(ITestOutputHelper output)
             {details}
 
             If this change is intentional and has been approved by the team, run:
-              HUDDLY_CONTRACT_UPDATE_BASELINE=1 dotnet test Huddly.Sdk.ContractTests
+              dotnet build Huddly.Sdk.ContractTests/Huddly.Sdk.ContractTests.csproj -c Release -t:UpdateContractBaseline
             then review the git diff of ContractedInterfaces.approved.txt and commit it.
             """;
     }
