@@ -12,6 +12,7 @@ property Huddly.Device.Model.DeviceModel Model { get; }
 property ushort ProductId { get; }
 property string Serial { get; }
 property ushort VendorId { get; }
+method bool Equals(Huddly.Device.Model.IDeviceDescriptor? other)
 
 ## Huddly.Device.Model.IExclusiveLock
 interface IExclusiveLock
@@ -48,6 +49,7 @@ method Task<Huddly.Sdk.Models.Result> SetZoom(double value, CancellationToken ct
 
 ## Huddly.Sdk.Detectors.IDetector
 interface IDetector
+method ValueTask DisposeAsync()
 method IAsyncEnumerable<Huddly.Sdk.Models.Detections> GetDetections(CancellationToken ct = null)
 
 ## Huddly.Sdk.FeatureControl.IFeatureControl
@@ -62,6 +64,7 @@ method Task<Huddly.Sdk.Models.Result> SetFramingMode(Huddly.Sdk.Models.FramingMo
 
 ## Huddly.Sdk.FramingSubscribers.IFramingSubscriber
 interface IFramingSubscriber
+method void Dispose()
 method IAsyncEnumerable<Huddly.Sdk.Models.Framings> GetFramings(CancellationToken ct = null)
 
 ## Huddly.Sdk.FramingZoneCore.IFramingZoneControl
@@ -84,7 +87,7 @@ interface IFirmwareApi
 ## Huddly.Sdk.Heartbeat.IDeviceHeartbeat
 interface IDeviceHeartbeat
 property bool IsRunning { get; }
-event EventHandler<Huddly.Sdk.IDevice> HeartbeatFailed
+event EventHandler<Huddly.Sdk.IDevice>? HeartbeatFailed
 method void Resume()
 method Task Start(Huddly.Sdk.IDeviceMonitor monitor, int probeInterval_ms, CancellationToken ct)
 method void Suspend()
@@ -123,9 +126,10 @@ method IAsyncEnumerable<Huddly.Sdk.Models.StreamStatusContainer> SubscribeToStre
 ## Huddly.Sdk.IDeviceMonitor
 interface IDeviceMonitor
 property bool IsMonitoring { get; }
-event EventHandler<Huddly.Device.Model.Events.DeviceAccessDeniedEventArgs> DeviceAccessDenied
-event EventHandler<Huddly.Sdk.Models.DeviceConnectionChangeEventArgs> DeviceConnected
-event EventHandler<Huddly.Sdk.Models.DeviceConnectionChangeEventArgs> DeviceDisconnected
+event EventHandler<Huddly.Device.Model.Events.DeviceAccessDeniedEventArgs>? DeviceAccessDenied
+event EventHandler<Huddly.Sdk.Models.DeviceConnectionChangeEventArgs>? DeviceConnected
+event EventHandler<Huddly.Sdk.Models.DeviceConnectionChangeEventArgs>? DeviceDisconnected
+method void Dispose()
 method ISet<Huddly.Sdk.IDevice> GetDevices()
 [Obsolete] method Type GetDiscoveryType()
 method void Resume()
@@ -142,6 +146,7 @@ method Task<Huddly.Sdk.Models.Result> SetXu(Guid id, uint control, byte[] payloa
 
 ## Huddly.Sdk.IIpDeviceMonitor
 interface IIpDeviceMonitor
+method void Dispose()
 
 ## Huddly.Sdk.IMultiCameraDevice
 interface IMultiCameraDevice
@@ -149,9 +154,10 @@ method Task<Huddly.Sdk.Models.Result<IList<Huddly.Sdk.Models.CameraStatus>>> Get
 
 ## Huddly.Sdk.ISdk
 interface ISdk
-event EventHandler<Huddly.Device.Model.Events.DeviceAccessDeniedEventArgs> DeviceAccessDenied
-event EventHandler<Huddly.Sdk.Models.DeviceConnectionChangeEventArgs> DeviceConnected
-event EventHandler<Huddly.Sdk.Models.DeviceConnectionChangeEventArgs> DeviceDisconnected
+event EventHandler<Huddly.Device.Model.Events.DeviceAccessDeniedEventArgs>? DeviceAccessDenied
+event EventHandler<Huddly.Sdk.Models.DeviceConnectionChangeEventArgs>? DeviceConnected
+event EventHandler<Huddly.Sdk.Models.DeviceConnectionChangeEventArgs>? DeviceDisconnected
+method void Dispose()
 method IImmutableDictionary<string, Huddly.Sdk.IDevice> GetMonitoredDevices()
 method bool IsMonitoring()
 method Task StartMonitoring(int timeout_ms = -1, CancellationToken ct = null)
@@ -170,6 +176,7 @@ method Task<Huddly.Sdk.Models.Result> TakeExclusiveLock(int timeout, string reas
 
 ## Huddly.Sdk.IUsbDeviceMonitor
 interface IUsbDeviceMonitor
+method void Dispose()
 
 ## Huddly.Sdk.Models.IFirmwareInfo
 interface IFirmwareInfo
@@ -179,8 +186,8 @@ property Huddly.Device.Model.DeviceModel Model { get; }
 
 ## Huddly.Sdk.Models.IMonitorController
 interface IMonitorController
-event EventHandler Resume
-event EventHandler Suspend
+event EventHandler? Resume
+event EventHandler? Suspend
 
 ## Huddly.Sdk.MtrIntelligentCameraCore.IMtrIntelligentCameraControl
 interface IMtrIntelligentCameraControl

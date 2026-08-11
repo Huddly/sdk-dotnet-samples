@@ -2,7 +2,8 @@ namespace Huddly.Sdk.ContractTests.ApiSurface;
 
 /// <summary>
 /// A formatted member line (see ApiSurfaceGenerator.DescribeMembers) split into the parts that
-/// matter for contract comparison: its identity (kind + name + parameter types + return type -
+/// matter for contract comparison: its identity (kind/staticness + name + parameter types + return
+/// type + generic constraints -
 /// the part that, if it changes, breaks a compiled caller), the set of attributes applied to it,
 /// and whether it carries the `required` modifier.
 ///
@@ -45,7 +46,11 @@ internal readonly record struct MemberSignature(string Identity, IReadOnlyList<s
     /// </summary>
     private static string StripParameterCosmetics(string identityLine)
     {
-        var bracket = FindBracketPair(identityLine, '(', ')') ?? FindBracketPair(identityLine, '[', ']');
+        var bracket = identityLine.StartsWith("method ", StringComparison.Ordinal)
+            ? FindMethodParameterList(identityLine)
+            : identityLine.StartsWith("property ", StringComparison.Ordinal)
+                ? FindIndexerParameterList(identityLine)
+                : null;
         if (bracket is not var (open, close))
             return identityLine;
 
@@ -55,17 +60,38 @@ internal readonly record struct MemberSignature(string Identity, IReadOnlyList<s
         return identityLine[..(open + 1)] + string.Join(", ", strippedParameters) + identityLine[close..];
     }
 
+    private static (int Open, int Close)? FindMethodParameterList(string text)
+    {
+        var constraintStart = text.IndexOf(" where ", StringComparison.Ordinal);
+        var searchBefore = constraintStart >= 0 ? constraintStart - 1 : text.Length - 1;
+        var close = text.LastIndexOf(')', searchBefore);
+        return close < 0 ? null : FindBracketPairEndingAt(text, close, '(', ')');
+    }
+
+    private static (int Open, int Close)? FindIndexerParameterList(string text)
+    {
+        var accessorStart = text.LastIndexOf(" {", StringComparison.Ordinal);
+        if (accessorStart < 0)
+            return null;
+
+        var close = text.LastIndexOf(']', accessorStart - 1);
+        if (close < 0 || text[(close + 1)..accessorStart].Any(character => !char.IsWhiteSpace(character)))
+            return null; // The bracket belongs to the property's type (e.g. int[,]), not an indexer.
+
+        return FindBracketPairEndingAt(text, close, '[', ']');
+    }
+
     /// <summary>
-    /// Finds the outermost bracket pair ending at the line's last closeChar, matching depth
+    /// Finds the outermost bracket pair ending at a caller-selected closing bracket, matching depth
     /// backward so an unrelated earlier bracket of the same kind - e.g. the array-type brackets in
     /// an indexer's "List&lt;string[]&gt; Item[int index]" - can't be mistaken for the real pair.
     /// </summary>
-    private static (int Open, int Close)? FindBracketPair(string text, char openChar, char closeChar)
+    private static (int Open, int Close)? FindBracketPairEndingAt(
+        string text,
+        int close,
+        char openChar,
+        char closeChar)
     {
-        var close = text.LastIndexOf(closeChar);
-        if (close < 0)
-            return null;
-
         var depth = 0;
         for (var i = close; i >= 0; i--)
         {

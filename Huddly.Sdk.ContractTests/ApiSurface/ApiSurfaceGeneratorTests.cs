@@ -36,6 +36,81 @@ public interface IArrayNullabilityFixture
     string[]? NullableArray { get; }
 }
 
+public interface IArrayRankFixture
+{
+    int[] Vector { get; }
+
+    int[,] Matrix { get; }
+
+    int[,,] Cube { get; }
+}
+
+public interface INullableEventFixture
+{
+    event EventHandler? Changed;
+}
+
+public interface IStaticMemberFixture
+{
+    static abstract int Count { get; }
+
+    static abstract void Reset();
+}
+
+public interface IVariantFixture<out TResult, in TInput>
+    where TResult : class
+{
+    TResult Convert(TInput input);
+}
+
+public interface IVariantFixtureRenamed<out T, in TArgument>
+    where T : class
+{
+    T Convert(TArgument input);
+}
+
+public class GenericConstraintBase
+{
+}
+
+public interface IGenericConstraintMarker
+{
+}
+
+public interface IGenericConstraintFixture
+{
+    TResult Create<TResult>() where TResult : class, new();
+
+    TResult CreateNullable<TResult>() where TResult : class?;
+
+    TResult PreserveValue<TResult>() where TResult : struct;
+
+    TResult PreserveUnmanaged<TResult>() where TResult : unmanaged;
+
+    TResult CreateComplex<TResult>() where TResult : GenericConstraintBase, IGenericConstraintMarker, new();
+}
+
+public static class FirstNestedTypeHolder
+{
+    public sealed class Marker
+    {
+    }
+}
+
+public static class SecondNestedTypeHolder
+{
+    public sealed class Marker
+    {
+    }
+}
+
+public interface INestedTypeIdentityFixture
+{
+    FirstNestedTypeHolder.Marker GetFirst();
+
+    SecondNestedTypeHolder.Marker GetSecond();
+}
+
 public interface IQualifyNamespaceFixture
 {
     SystemDiagnosticsExtensions.IQualifyNamespaceFixtureMarker GetMarker();
@@ -137,6 +212,74 @@ public class ApiSurfaceGeneratorTests
 
         Assert.Contains("property string[] NonNullableArray { get; }", members);
         Assert.Contains("property string[]? NullableArray { get; }", members);
+    }
+
+    [Fact]
+    public void DescribeMembers_DistinguishesArrayRanks()
+    {
+        var members = ApiSurfaceGenerator.DescribeMembers(typeof(IArrayRankFixture));
+
+        Assert.Contains("property int[] Vector { get; }", members);
+        Assert.Contains("property int[,] Matrix { get; }", members);
+        Assert.Contains("property int[,,] Cube { get; }", members);
+    }
+
+    [Fact]
+    public void DescribeMembers_PreservesEventNullability()
+    {
+        var members = ApiSurfaceGenerator.DescribeMembers(typeof(INullableEventFixture));
+
+        Assert.Contains("event EventHandler? Changed", members);
+    }
+
+    [Fact]
+    public void DescribeMembers_DistinguishesStaticMembers()
+    {
+        var members = ApiSurfaceGenerator.DescribeMembers(typeof(IStaticMemberFixture));
+
+        Assert.Contains("property static int Count { get; }", members);
+        Assert.Contains("method static void Reset()", members);
+    }
+
+    [Fact]
+    public void DescribeMembers_PreservesGenericVarianceAndConstraints()
+    {
+        var members = ApiSurfaceGenerator.DescribeMembers(typeof(IVariantFixture<,>));
+
+        Assert.Equal("interface IVariantFixture<out T0, in T1> where T0 : class", members[0]);
+        Assert.Contains("method T0 Convert(T1? input)", members);
+
+        var renamedMembers = ApiSurfaceGenerator.DescribeMembers(typeof(IVariantFixtureRenamed<,>));
+        Assert.Equal(members[1], renamedMembers[1]);
+    }
+
+    [Fact]
+    public void DescribeMembers_PreservesGenericMethodConstraints()
+    {
+        var members = ApiSurfaceGenerator.DescribeMembers(typeof(IGenericConstraintFixture));
+
+        Assert.Contains("method T0 Create<T0>() where T0 : class, new()", members);
+        Assert.Contains("method T0? CreateNullable<T0>() where T0 : class?", members);
+        Assert.Contains("method T0 PreserveValue<T0>() where T0 : struct", members);
+        Assert.Contains("method T0 PreserveUnmanaged<T0>() where T0 : unmanaged", members);
+        Assert.Contains(
+            "method T0 CreateComplex<T0>() where T0 : " +
+            "Huddly.Sdk.ContractTests.ApiSurface.GenericConstraintBase, " +
+            "Huddly.Sdk.ContractTests.ApiSurface.IGenericConstraintMarker, new()",
+            members);
+    }
+
+    [Fact]
+    public void DescribeMembers_QualifiesNestedTypesByTheirDeclaringType()
+    {
+        var members = ApiSurfaceGenerator.DescribeMembers(typeof(INestedTypeIdentityFixture));
+
+        Assert.Contains(
+            "method Huddly.Sdk.ContractTests.ApiSurface.FirstNestedTypeHolder.Marker GetFirst()",
+            members);
+        Assert.Contains(
+            "method Huddly.Sdk.ContractTests.ApiSurface.SecondNestedTypeHolder.Marker GetSecond()",
+            members);
     }
 
     [Fact]

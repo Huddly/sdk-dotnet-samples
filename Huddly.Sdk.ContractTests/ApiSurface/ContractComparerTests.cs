@@ -92,10 +92,56 @@ public class ContractComparerTests
     }
 
     [Fact]
+    public void FindBreakingChanges_DoesNotTreatMultidimensionalArrayTypeBracketsAsAnIndexer()
+    {
+        var surface = Surface("A.IFoo", "interface IFoo", "property int[,] Values { get; }");
+
+        var breaks = ContractComparer.FindBreakingChanges([surface], [surface]);
+
+        Assert.Empty(breaks);
+    }
+
+    [Fact]
+    public void FindBreakingChanges_IgnoresAParameterRenameOnAMethodWithANewConstraint()
+    {
+        var baseline = Surface("A.IFoo", "interface IFoo", "method T0 Create<T0>(int value) where T0 : class, new()");
+        var current = Surface("A.IFoo", "interface IFoo", "method T0 Create<T0>(int amount) where T0 : class, new()");
+
+        var breaks = ContractComparer.FindBreakingChanges([baseline], [current]);
+
+        Assert.Empty(breaks);
+    }
+
+    [Fact]
     public void FindBreakingChanges_ReportsAParameterTypeChange()
     {
         var baseline = Surface("A.IFoo", "interface IFoo", "method void Bar(int value)");
         var current = Surface("A.IFoo", "interface IFoo", "method void Bar(string value)");
+
+        var breaks = ContractComparer.FindBreakingChanges([baseline], [current]);
+
+        Assert.Single(breaks);
+    }
+
+    [Fact]
+    public void FindBreakingChanges_ReportsAnArrayRankChange()
+    {
+        var baseline = Surface("A.IFoo", "interface IFoo", "property int[] Values { get; }");
+        var current = Surface("A.IFoo", "interface IFoo", "property int[,] Values { get; }");
+
+        var breaks = ContractComparer.FindBreakingChanges([baseline], [current]);
+
+        Assert.Single(breaks);
+    }
+
+    [Theory]
+    [InlineData("event EventHandler Changed", "event EventHandler? Changed")]
+    [InlineData("method void Reset()", "method static void Reset()")]
+    [InlineData("method T0 Create<T0>() where T0 : class", "method T0 Create<T0>() where T0 : struct")]
+    public void FindBreakingChanges_ReportsNewlyModeledSignatureChanges(string baselineMember, string currentMember)
+    {
+        var baseline = Surface("A.IFoo", "interface IFoo", baselineMember);
+        var current = Surface("A.IFoo", "interface IFoo", currentMember);
 
         var breaks = ContractComparer.FindBreakingChanges([baseline], [current]);
 
