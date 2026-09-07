@@ -1,0 +1,194 @@
+name: SDK contract tests
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Keeps ContractedInterfaces.approved.txt in sync with the latest stable release on nuget.org
+# (VersionOverride="*" default), only ever committing a change if that exact version already
+# passed the check - so a real regression can never get ratcheted in by this schedule.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * *"
+
+# Guards against two runs (e.g. the schedule and a manual dispatch) overlapping and double-posting
+# to Slack or racing on the baseline commit. cancel-in-progress is safe since every run redoes the
+# check from scratch rather than resuming.
+concurrency:
+  group: sdk-contract-tests
+  cancel-in-progress: true
+
+jobs:
+  api-surface:
+    name: API surface contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build contract tests
+        shell: bash
+        run: dotnet build Huddly.Sdk.ContractTests/Huddly.Sdk.ContractTests.csproj -c Release
+
+      # Reflection-only checks against the Huddly.Sdk/Huddly.Device.Model contract; no hardware needed.
+      # Fails here (and skips everything below) if the latest published SDK version - whatever its
+      # major - lost or resignatured a previously published contract member.
+      - name: Run API surface contract tests
+        id: check
+        shell: bash
+        env:
+          HUDDLY_CONTRACT_NOTICES_FILE: ${{ runner.temp }}/contract-notices.txt
+        run: dotnet Huddly.Sdk.ContractTests/bin/Release/*/Huddly.Sdk.ContractTests.dll -trait- "Category=Hardware"
+
+      # Only reached if the step above passed. Ratchets ContractedInterfaces.approved.txt forward
+      # to the shape actually tested, so the reference baseline stays in sync with the latest
+      # stable release instead of going stale. Writes into the checked-out source tree; picked up
+      # as an uncommitted change by the commit step below (no rebuild needed since nothing is
+      # re-verified in this same job). Restricted to the schedule trigger, same reasoning as the
+      # commit step below - a manual workflow_dispatch never commits this, so regenerating it would
+      # just be discarded work.
+      - name: Regenerate baseline against the tested version
+        if: github.event_name == 'schedule'
+        shell: bash
+        env:
+          HUDDLY_CONTRACT_UPDATE_BASELINE: "1"
+        run: dotnet Huddly.Sdk.ContractTests/bin/Release/*/Huddly.Sdk.ContractTests.dll -trait- "Category=Hardware"
+
+      # Restricted to the schedule trigger: a manual workflow_dispatch might be run against an
+      # arbitrary branch/PR for testing, and shouldn't have a side effect of pushing a commit.
+      # No-ops if the regenerated file is byte-identical to what's already committed (nothing to
+      # push if nuget.org hasn't published a new stable version since the last run).
+      - name: Commit updated baseline
+        if: github.event_name == 'schedule'
+        shell: bash
+        run: |
+          if git diff --quiet -- Huddly.Sdk.ContractTests/Contract/ContractBaseline/ContractedInterfaces.approved.txt; then
+            echo "Baseline unchanged - nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Huddly.Sdk.ContractTests/Contract/ContractBaseline/ContractedInterfaces.approved.txt
+          git commit -m "Auto-update contract baseline (non-breaking SDK update)"
+          git push
+
+      # Same safety reasoning as the baseline commit above (only reached if the check passed), but
+      # this touches Directory.Packages.props, which every sample project in the solution actually
+      # builds against - unlike the baseline text file, a bad bump here would break real projects,
+      # so it goes through a PR for a human to merge rather than a direct commit.
+      - name: Extract the tested version
+        id: tested-version
+        if: github.event_name == 'schedule'
+        shell: bash
+        run: |
+          version=$(head -n1 Huddly.Sdk.ContractTests/Contract/ContractBaseline/ContractedInterfaces.approved.txt \
+            | sed -E 's/^# Generated against Huddly\.Sdk ([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+
+          # sed passes the input through UNCHANGED when the pattern doesn't match - it does not
+          # produce an empty string - so an emptiness check alone would miss a malformed header
+          # and let the literal, non-matching line get written into Directory.Packages.props as
+          # the "version". Validate the actual shape instead.
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Could not extract a version from the baseline header (got '$version') - refusing to bump Directory.Packages.props."
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Bump Huddly.Sdk / Huddly.Sdk.Extensions in Directory.Packages.props
+        if: github.event_name == 'schedule'
+        shell: bash
+        env:
+          VERSION: ${{ steps.tested-version.outputs.version }}
+        run: |
+          sed -i -E "s#(<PackageVersion Include=\"Huddly\.Sdk\" Version=\")[^\"]+(\" />)#\1$VERSION\2#" Directory.Packages.props
+          sed -i -E "s#(<PackageVersion Include=\"Huddly\.Sdk\.Extensions\" Version=\")[^\"]+(\" />)#\1$VERSION\2#" Directory.Packages.props
+
+      # Confirms every sample project still compiles against the bumped version before proposing
+      # it - the contract check only verifies the Huddly.Sdk/Huddly.Device.Model API shape, not
+      # that this repo's own sample code still builds against it.
+      - name: Verify the solution still builds against the bumped version
+        if: github.event_name == 'schedule'
+        shell: bash
+        run: dotnet build Huddly.Sdk.Samples.sln -c Release
+
+      # No-ops if Directory.Packages.props ends up byte-identical to what's already committed.
+      # Reuses the same branch/PR across runs instead of piling up a new PR every day.
+      - name: Open PR to bump the pinned SDK version
+        id: bump-pr
+        if: github.event_name == 'schedule'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          add-paths: Directory.Packages.props
+          branch: auto/bump-sdk-version
+          delete-branch: true
+          commit-message: "Bump Huddly.Sdk / Huddly.Sdk.Extensions to ${{ steps.tested-version.outputs.version }}"
+          title: "Bump Huddly.Sdk / Huddly.Sdk.Extensions to ${{ steps.tested-version.outputs.version }}"
+          body: |
+            The latest published Huddly.Sdk / Huddly.Sdk.Extensions release passed the contract
+            check (no breaking changes) and the solution still builds against it, so this PR
+            bumps the version every sample project pins via `Directory.Packages.props`.
+
+            Generated automatically by the "SDK contract tests" workflow (run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+            Review the diff, then merge to adopt this version across the samples.
+
+      # Only fires when the PR step actually created or updated something (pull-request-operation
+      # is "none" when Directory.Packages.props ended up byte-identical, e.g. re-running against
+      # the same version) - stays silent rather than pinging Slack for a no-op run.
+      - name: Notify Slack about the version-bump PR
+        if: github.event_name == 'schedule' && steps.bump-pr.outputs.pull-request-operation != 'none'
+        continue-on-error: true
+        shell: bash
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_SDK_DOTNET_CI_WEBHOOK_URL }}
+          PR_URL: ${{ steps.bump-pr.outputs.pull-request-url }}
+          PR_OPERATION: ${{ steps.bump-pr.outputs.pull-request-operation }}
+          VERSION: ${{ steps.tested-version.outputs.version }}
+        run: |
+          TEXT=":arrow_up: SDK version bump PR $PR_OPERATION: Huddly.Sdk / Huddly.Sdk.Extensions -> $VERSION"$'\n'"<$PR_URL|Review and merge>"
+
+          jq -n --arg text "$TEXT" '{text: $text}' \
+            | curl -sS --fail -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
+
+      # Runs regardless of pass/fail (if: always()) so a breaking-change failure is reported, not
+      # just a green run. continue-on-error: true so a Slack outage (bad webhook, network blip)
+      # can never fail the job the actual contract check already decided the outcome of. Builds
+      # the payload with jq rather than string interpolation - sdk-dotnet's own nightly-CI Slack
+      # script hit real bugs (newlines/emoji/quoting breaking hand-rolled JSON) before switching to
+      # this approach.
+      - name: Notify Slack
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_SDK_DOTNET_CI_WEBHOOK_URL }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          NOTICES_FILE: ${{ runner.temp }}/contract-notices.txt
+        run: |
+          if [ "$CHECK_OUTCOME" = "success" ]; then
+            HEADER=":white_check_mark: SDK contract tests passed"
+          else
+            HEADER=":x: SDK contract tests failed"
+          fi
+
+          if [ -s "$NOTICES_FILE" ]; then
+            DETAILS=$(cat "$NOTICES_FILE")
+          else
+            DETAILS="(no breaking changes or new members since the last approved baseline)"
+          fi
+
+          TEXT="$HEADER — <$RUN_URL|View run>"$'\n'"$DETAILS"
+
+          jq -n --arg text "$TEXT" '{text: $text}' \
+            | curl -sS --fail -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
+
+  # DeviceFirmwareContractTests (Category=Hardware) isn't run here - it needs a real USB/IP
+  # device, which sdk-dotnet's nightly workflow provides (contract-tests-nightly.yml, checking out
+  # this repo read-only). To run it manually on a machine with a device connected:
+  #   dotnet build Huddly.Sdk.ContractTests -c Release
+  #   dotnet Huddly.Sdk.ContractTests/bin/Release/*/Huddly.Sdk.ContractTests.dll -trait "Category=Hardware"

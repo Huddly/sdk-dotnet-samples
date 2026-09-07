@@ -1,0 +1,40 @@
+# Predefined set of interfaces considered part of the public Huddly SDK contract.
+# One fully-qualified interface name per line (use Type.FullName; nested interfaces use '+' between outer and inner types). Blank lines and lines starting with '#' are ignored.
+#
+# This list is the source of truth for the contract tests:
+#   - a breaking change to a listed interface's members fails the build.
+#   - a new member added to a listed interface produces a non-fatal warning instead of a failure.
+#   - interfaces NOT listed here are not covered by the contract tests.
+#
+# Seeded from every public interface in Huddly.Sdk 2.35.1 and Huddly.Device.Model 2.35.1.
+# Review and trim deliberately; adding/removing entries is itself a decision the team should make,
+# not something that should happen implicitly just because the SDK gained a new public interface.
+
+# Huddly.Sdk
+Huddly.Sdk.CameraControl.IImageSettings
+Huddly.Sdk.CameraControl.IPtz
+Huddly.Sdk.Detectors.IDetector
+Huddly.Sdk.FeatureControl.IFeatureControl
+Huddly.Sdk.FramingModeCore.IFramingModeControl
+Huddly.Sdk.FramingSubscribers.IFramingSubscriber
+Huddly.Sdk.FramingZoneCore.IFramingZoneControl
+Huddly.Sdk.Gateways.IFirmwareApi
+Huddly.Sdk.Heartbeat.IDeviceHeartbeat
+Huddly.Sdk.IDevice
+Huddly.Sdk.IDeviceMonitor
+Huddly.Sdk.IIpDevice
+Huddly.Sdk.IIpDeviceMonitor
+Huddly.Sdk.IMultiCameraDevice
+Huddly.Sdk.ISdk
+Huddly.Sdk.IUsbDevice
+Huddly.Sdk.IUsbDeviceMonitor
+Huddly.Sdk.Models.IFirmwareInfo
+Huddly.Sdk.Models.IMonitorController
+Huddly.Sdk.MtrIntelligentCameraCore.IMtrIntelligentCameraControl
+Huddly.Sdk.Upgraders.IFirmwareChecker
+Huddly.Sdk.Upgraders.IFirmwareParser
+Huddly.Sdk.Upgraders.IFirmwareUpgrader
+
+# Huddly.Device.Model
+Huddly.Device.Model.IDeviceDescriptor
+Huddly.Device.Model.IExclusiveLock
