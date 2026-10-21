@@ -2,12 +2,13 @@
 using Huddly.Sdk.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Samples.Shared;
 
 namespace FramingModes;
 
 internal class Program
 {
-    static async Task Main(string[] _)
+    static async Task<int> Main(string[] args)
     {
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
@@ -23,16 +24,23 @@ internal class Program
         // Should always be disposed after use
         using var huddlySdk = sp.GetRequiredService<ISdk>();
         var cts = new CancellationTokenSource();
+        // --once / --timeout handling, see Shared/SampleRun.cs
+        var run = SampleRun.FromArgs(args, cts);
 
         IDevice? lastDevice = null;
         huddlySdk.DeviceConnected += async (o, e) =>
         {
+            if (!run.ShouldHandleDevice())
+            {
+                return;
+            }
+
             lastDevice = e.Device;
 
             // Get framing mode
             var getFramingResult = await lastDevice.GetFramingMode(cts.Token);
             FramingMode? framing = getFramingResult.IsSuccess ? getFramingResult.Value : null;
-            Console.WriteLine($"Current framing value: {getFramingResult.Value}");
+            Console.WriteLine($"Current framing value: {framing?.ToString() ?? "unknown"}");
 
             var supportedFeatures = await lastDevice.GetSupportedFeatures(cts.Token);
 
@@ -46,18 +54,25 @@ internal class Program
             }
 
             Console.WriteLine($"Changing framing mode to: {FramingMode.Manual}");
-            var setFramingResult = await lastDevice.SetFramingMode(FramingMode.Manual, cts.Token);
-            if (setFramingResult.IsSuccess)
+            var setManualResult = await lastDevice.SetFramingMode(FramingMode.Manual, cts.Token);
+            if (setManualResult.IsSuccess)
             {
                 Console.WriteLine("Successfully changed framing mode!");
             }
 
             Console.WriteLine($"Changing framing mode to: {FramingMode.GeniusFraming}");
-            setFramingResult = await lastDevice.SetFramingMode(FramingMode.GeniusFraming, cts.Token);
-            if (setFramingResult.IsSuccess)
+            var setGeniusResult = await lastDevice.SetFramingMode(FramingMode.GeniusFraming, cts.Token);
+            if (setGeniusResult.IsSuccess)
             {
                 Console.WriteLine("Successfully changed framing mode!");
             }
+
+            run.Complete(
+                getFramingResult.IsSuccess
+                    && supportedFeatures.IsSuccess
+                    && setManualResult.IsSuccess
+                    && setGeniusResult.IsSuccess
+            );
         };
         huddlySdk.DeviceDisconnected += (o, e) =>
         {
@@ -74,5 +89,7 @@ internal class Program
         };
 
         await huddlySdk.StartMonitoring(ct: cts.Token);
+        await run.WaitUntilCancelled();
+        return run.ExitCode;
     }
 }

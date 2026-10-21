@@ -16,4 +16,9 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Console" />
 	</ItemGroup>
 
+	<!-- How a sample runs (the once and timeout options), shared by all samples. -->
+	<ItemGroup>
+		<Compile Include="..\Shared\SampleRun.cs" Link="Shared\SampleRun.cs" />
+	</ItemGroup>
+
 </Project>

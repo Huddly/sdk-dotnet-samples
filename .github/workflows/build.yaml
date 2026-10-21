@@ -23,3 +23,17 @@ jobs:
       - name: Build solution
         shell: bash
         run: dotnet build
+
+      # The SDK's USB discovery loads libusb-1.0.so, which hosted Ubuntu runners do not ship (the -dev
+      # package provides the unversioned name). Without it the samples crash (exit 134) instead of
+      # reporting that no device connected.
+      - name: Install libusb
+        shell: bash
+        run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev
+
+      # Hosted runners have no Huddly camera, so this runs only the tests that expect none: every
+      # sample must wait for a device and then exit with a failure code. The tests against a real
+      # camera (Category=Device) run on hardware from sdk-dotnet.
+      - name: Run samples without a device
+        shell: bash
+        run: dotnet test --no-build --filter "Category=NoDevice"

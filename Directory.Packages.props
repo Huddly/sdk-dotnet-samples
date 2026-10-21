@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
   <ItemGroup>
@@ -9,7 +10,13 @@
     <PackageVersion Include="Huddly.Sdk.Extensions" Version="2.36.2" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.9" />
-    <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
+    <!-- Transitive pin: Huddly.Sdk up to 2.37.4 pulls a MessagePack with GHSA-qhrr-8q5h-9q3h.
+         Remove once the pinned Huddly.Sdk depends on 3.1.12 or later. -->
+    <PackageVersion Include="MessagePack" Version="3.1.12" />
+    <!-- Only used by Huddly.Sdk.Samples.Tests. -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
   </ItemGroup>
 
 </Project>

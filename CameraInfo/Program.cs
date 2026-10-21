@@ -1,12 +1,13 @@
 ﻿using Huddly.Sdk;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Samples.Shared;
 
 namespace CameraInfo;
 
 internal class Program
 {
-    static async Task Main(string[] _)
+    static async Task<int> Main(string[] args)
     {
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
@@ -22,10 +23,17 @@ internal class Program
         // Should always be disposed after use
         using var huddlySdk = sp.GetRequiredService<ISdk>();
         var cts = new CancellationTokenSource();
+        // --once / --timeout handling, see Shared/SampleRun.cs
+        var run = SampleRun.FromArgs(args, cts);
 
         IDevice? lastDevice = null;
         huddlySdk.DeviceConnected += async (o, e) =>
         {
+            if (!run.ShouldHandleDevice())
+            {
+                return;
+            }
+
             lastDevice = e.Device;
 
             // Properties containing camera info
@@ -42,8 +50,17 @@ internal class Program
             );
 
             // Device firmware version
-            var fwVersion = (await lastDevice.GetFirmwareVersion(cts.Token)).GetValueOrThrow();
-            Console.WriteLine($"Device firmware version: {fwVersion?.ToString() ?? "unknown"}");
+            var fwVersionResult = await lastDevice.GetFirmwareVersion(cts.Token);
+            if (fwVersionResult.IsSuccess)
+            {
+                Console.WriteLine($"Device firmware version: {fwVersionResult.Value}");
+            }
+            else
+            {
+                Console.WriteLine($"Failed reading firmware version: {fwVersionResult.Message}");
+            }
+
+            run.Complete(deviceNameResult.IsSuccess && fwVersionResult.IsSuccess);
         };
         huddlySdk.DeviceDisconnected += (o, e) =>
         {
@@ -60,5 +77,7 @@ internal class Program
         };
 
         await huddlySdk.StartMonitoring(ct: cts.Token);
+        await run.WaitUntilCancelled();
+        return run.ExitCode;
     }
 }

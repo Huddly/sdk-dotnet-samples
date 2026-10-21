@@ -2,12 +2,13 @@
 using Huddly.Sdk;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Samples.Shared;
 
 namespace Crew;
 
 internal class Program
 {
-    static async Task Main(string[] _)
+    static async Task<int> Main(string[] args)
     {
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
@@ -23,6 +24,9 @@ internal class Program
         // Should always be disposed after use
         using var huddlySdk = sp.GetRequiredService<ISdk>();
         var cts = new CancellationTokenSource();
+        // --once / --timeout handling, see Shared/SampleRun.cs. With --once, the first Crew device
+        // that connects is handled; other devices are skipped below.
+        var run = SampleRun.FromArgs(args, cts);
 
         IDevice? lastDevice = null;
         huddlySdk.DeviceConnected += async (o, e) =>
@@ -30,6 +34,11 @@ internal class Program
             if (!(e.Device is { Model: DeviceModel.Crew } and IMultiCameraDevice))
             {
                 Console.WriteLine($"Device {e.Device.Model} is not a Crew-device");
+                return;
+            }
+
+            if (!run.ShouldHandleDevice())
+            {
                 return;
             }
 
@@ -45,17 +54,21 @@ internal class Program
                 Console.WriteLine(
                     $"Failed getting connected cameras: {connectedCamerasResult.Message}"
                 );
-                return;
             }
-            var crewCameraStatuses = connectedCamerasResult.Value;
-            Console.WriteLine($"Crew system with the following cameras connected:");
-            foreach (var cameraStatus in crewCameraStatuses)
+            else
             {
-                Console.WriteLine(
-                    $"\tSerial: {cameraStatus.Serial}, Type: {cameraStatus.Type}, "
-                        + $"Availability: {cameraStatus.Availability}"
-                );
+                var crewCameraStatuses = connectedCamerasResult.Value;
+                Console.WriteLine($"Crew system with the following cameras connected:");
+                foreach (var cameraStatus in crewCameraStatuses)
+                {
+                    Console.WriteLine(
+                        $"\tSerial: {cameraStatus.Serial}, Type: {cameraStatus.Type}, "
+                            + $"Availability: {cameraStatus.Availability}"
+                    );
+                }
             }
+
+            run.Complete(connectedCamerasResult.IsSuccess);
         };
         huddlySdk.DeviceDisconnected += (o, e) =>
         {
@@ -75,5 +88,7 @@ internal class Program
         };
 
         await huddlySdk.StartMonitoring(ct: cts.Token);
+        await run.WaitUntilCancelled();
+        return run.ExitCode;
     }
 }

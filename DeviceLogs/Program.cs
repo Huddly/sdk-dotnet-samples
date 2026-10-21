@@ -1,12 +1,13 @@
 ﻿using Huddly.Sdk;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Samples.Shared;
 
 namespace DeviceLogs;
 
 internal class Program
 {
-    static async Task Main(string[] _)
+    static async Task<int> Main(string[] args)
     {
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
@@ -22,12 +23,21 @@ internal class Program
         // Should always be disposed after use
         using var huddlySdk = sp.GetRequiredService<ISdk>();
         var cts = new CancellationTokenSource();
+        // --once / --timeout handling, see Shared/SampleRun.cs
+        var run = SampleRun.FromArgs(args, cts);
 
         huddlySdk.DeviceConnected += async (sender, eventArgs) =>
         {
+            if (!run.ShouldHandleDevice())
+            {
+                return;
+            }
+
             IDevice device = eventArgs.Device;
             Console.WriteLine($"{device.Id} connected");
-            await RetrieveDeviceLogs(device, cts.Token);
+            var success = await RetrieveDeviceLogs(device, cts.Token);
+
+            run.Complete(success);
         };
         huddlySdk.DeviceDisconnected += (sender, eventArgs) =>
             Console.WriteLine($"{eventArgs.Device.Id} disconnected");
@@ -41,9 +51,11 @@ internal class Program
         };
 
         await huddlySdk.StartMonitoring(ct: cts.Token);
+        await run.WaitUntilCancelled();
+        return run.ExitCode;
     }
 
-    static async Task RetrieveDeviceLogs(IDevice device, CancellationToken ct)
+    static async Task<bool> RetrieveDeviceLogs(IDevice device, CancellationToken ct)
     {
         // Device logs can be written to any stream. Here we use the console output.
         var outputStream = Console.OpenStandardOutput();
@@ -61,5 +73,7 @@ internal class Program
         {
             Console.WriteLine($"Failed retrieving logs from device: {getLogResult.Message}.");
         }
+
+        return getLogResult.IsSuccess;
     }
 }
