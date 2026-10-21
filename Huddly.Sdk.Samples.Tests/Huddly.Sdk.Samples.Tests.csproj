@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="xunit.runner.visualstudio" />
+		<PackageReference Include="xunit.v3" />
+	</ItemGroup>
+
+	<!--
+		The samples are run as separate processes, exactly as a user runs them, so they are not
+		referenced as assemblies - these references only make sure they are built first.
+	-->
+	<ItemGroup>
+		<ProjectReference Include="..\CameraInfo\CameraInfo.csproj" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Crew\Crew.csproj" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Detections\Detections.csproj" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\DeviceLogs\DeviceLogs.csproj" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\FramingModes\FramingModes.csproj" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Upgrade\Upgrade.csproj" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="Xunit" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AssemblyMetadata Include="SamplesDirectory" Value="$(MSBuildThisFileDirectory).." />
+		<AssemblyMetadata Include="SamplesConfiguration" Value="$(Configuration)" />
+	</ItemGroup>
+
+</Project>

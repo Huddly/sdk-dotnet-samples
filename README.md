@@ -57,6 +57,37 @@ huddlySdk.StartMonitoring(cts.Token)
 
 If you have Huddly devices connected, you should now start getting connection events for them. Note that there can be some delay, particularly for IP devices.
 
+## Running the samples
+
+Each sample is a console app that keeps running until you press Control+C:
+
+```
+dotnet run --project CameraInfo
+```
+
+Pass `--once` to handle only the first device that connects and then exit. The exit code is `0` if everything the sample demonstrates succeeded, and non-zero on any failure, including no suitable device connecting within two minutes:
+
+```
+dotnet run --project CameraInfo -- --once
+```
+
+Note that `Upgrade --once` really upgrades the device when a newer firmware release is available, and `Crew` needs a Crew system. `--timeout <seconds>` changes how long `--once` waits for a device.
+
+### Sample tests
+
+`Huddly.Sdk.Samples.Tests` runs every sample with `--once` and checks its exit code:
+
+| Command | Needs |
+|---|---|
+| `dotnet test --filter Category=NoDevice` | no Huddly camera connected; every sample must report failure |
+| `dotnet test --filter Category=Device` | any Huddly camera; every sample must succeed |
+| `dotnet test --filter Category=CrewDevice` | a Crew system |
+| `dotnet test --filter Category=UpgradeDevice` | a camera you are willing to upgrade, and `HUDDLY_SAMPLES_ALLOW_UPGRADE=1` |
+
+### SDK versions and tags
+
+The samples always use one Huddly.Sdk version, set in `Directory.Packages.props`. On every Huddly.Sdk release, every sample is run against the new version on a real camera; only if they all pass, the samples are moved to that version and the commit is tagged with the release tag (e.g. `v2.38.0`). Check out that tag to get the samples that match the SDK version you use.
+
 ### USB Proxy
 
 The .NET Huddly SDK allows for connecting to USB devices through a proxy. This way, multiple independent processes can talk to a USB device at the same time. When communicating with USB devices, consumers should always default to attempt connecting to this proxy. If this fails, native USB can be used as a fallback. See the above examples for how to do this.
