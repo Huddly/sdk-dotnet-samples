@@ -7,8 +7,18 @@ namespace FramingModes;
 
 internal class Program
 {
-    static async Task Main(string[] _)
+    // Pass --once to exit after the first device has been handled: exit code 0 on success, 1 on
+    // failure or if no device connects within the timeout. Without it, runs until Control+C.
+    static async Task<int> Main(string[] args)
     {
+        var runOnce = args.Contains("--once");
+        var exitCode = 1;
+        // --timeout <seconds> changes how long --once waits for a device (default: two minutes).
+        var timeoutIndex = Array.IndexOf(args, "--timeout");
+        var deviceTimeout = timeoutIndex >= 0
+            ? TimeSpan.FromSeconds(int.Parse(args[timeoutIndex + 1]))
+            : TimeSpan.FromMinutes(2);
+
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
 
@@ -25,14 +35,21 @@ internal class Program
         var cts = new CancellationTokenSource();
 
         IDevice? lastDevice = null;
+        var deviceHandled = 0;
         huddlySdk.DeviceConnected += async (o, e) =>
         {
+            // With --once, only the first device that connects is handled.
+            if (runOnce && Interlocked.Exchange(ref deviceHandled, 1) == 1)
+            {
+                return;
+            }
+
             lastDevice = e.Device;
 
             // Get framing mode
             var getFramingResult = await lastDevice.GetFramingMode(cts.Token);
             FramingMode? framing = getFramingResult.IsSuccess ? getFramingResult.Value : null;
-            Console.WriteLine($"Current framing value: {getFramingResult.Value}");
+            Console.WriteLine($"Current framing value: {framing?.ToString() ?? "unknown"}");
 
             var supportedFeatures = await lastDevice.GetSupportedFeatures(cts.Token);
 
@@ -46,17 +63,28 @@ internal class Program
             }
 
             Console.WriteLine($"Changing framing mode to: {FramingMode.Manual}");
-            var setFramingResult = await lastDevice.SetFramingMode(FramingMode.Manual, cts.Token);
-            if (setFramingResult.IsSuccess)
+            var setManualResult = await lastDevice.SetFramingMode(FramingMode.Manual, cts.Token);
+            if (setManualResult.IsSuccess)
             {
                 Console.WriteLine("Successfully changed framing mode!");
             }
 
             Console.WriteLine($"Changing framing mode to: {FramingMode.GeniusFraming}");
-            setFramingResult = await lastDevice.SetFramingMode(FramingMode.GeniusFraming, cts.Token);
-            if (setFramingResult.IsSuccess)
+            var setGeniusResult = await lastDevice.SetFramingMode(FramingMode.GeniusFraming, cts.Token);
+            if (setGeniusResult.IsSuccess)
             {
                 Console.WriteLine("Successfully changed framing mode!");
+            }
+
+            if (runOnce)
+            {
+                var allSucceeded =
+                    getFramingResult.IsSuccess
+                    && supportedFeatures.IsSuccess
+                    && setManualResult.IsSuccess
+                    && setGeniusResult.IsSuccess;
+                exitCode = allSucceeded ? 0 : 1;
+                cts.Cancel();
             }
         };
         huddlySdk.DeviceDisconnected += (o, e) =>
@@ -73,6 +101,25 @@ internal class Program
             cts.Cancel();
         };
 
+        if (runOnce)
+        {
+            cts.CancelAfter(deviceTimeout);
+        }
+
         await huddlySdk.StartMonitoring(ct: cts.Token);
+        // Devices are reported through the events above while the SDK is monitoring. Depending on
+        // the SDK version, StartMonitoring returns once monitoring has started rather than when it
+        // is cancelled, so keep the sample alive until it is cancelled.
+        await WaitForCancellation(cts.Token);
+        return exitCode;
+    }
+
+    static async Task WaitForCancellation(CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(Timeout.Infinite, ct);
+        }
+        catch (OperationCanceledException) { }
     }
 }

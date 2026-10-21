@@ -10,10 +10,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Huddly.Sdk" Version="2.36.2" />
-		<PackageReference Include="Huddly.Sdk.Extensions" Version="2.36.2" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.9" />
+		<PackageReference Include="Huddly.Sdk" />
+		<PackageReference Include="Huddly.Sdk.Extensions" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Console" />
 	</ItemGroup>
 
 </Project>

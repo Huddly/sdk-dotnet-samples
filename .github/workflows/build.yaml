@@ -23,3 +23,10 @@ jobs:
       - name: Build solution
         shell: bash
         run: dotnet build
+
+      # Hosted runners have no Huddly camera, so this runs only the tests that expect none: every
+      # sample must wait for a device and then exit with a failure code. The tests against a real
+      # camera (Category=Device) run on hardware from sdk-dotnet.
+      - name: Run samples without a device
+        shell: bash
+        run: dotnet test --no-build --filter "Category=NoDevice"
