@@ -2,12 +2,13 @@
 using Huddly.Sdk;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Samples.Shared;
 
 namespace Crew;
 
 internal class Program
 {
-    static async Task Main(string[] _)
+    static async Task<int> Main(string[] args)
     {
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
@@ -18,13 +19,15 @@ internal class Program
             configure.UseIpDeviceMonitor();
         });
 
-        var sp = services.BuildServiceProvider();
-
-        // Should always be disposed after use
-        using var huddlySdk = sp.GetRequiredService<ISdk>();
+        // The ISdk should always be disposed after use. It is created by the service provider, so
+        // disposing the provider disposes it (and flushes the console logger).
+        using var sp = services.BuildServiceProvider();
+        var huddlySdk = sp.GetRequiredService<ISdk>();
         var cts = new CancellationTokenSource();
+        // --once / --timeout handling, see Shared/SampleRun.cs. With --once, the first Crew device
+        // that connects is handled; other devices are skipped below.
+        var run = SampleRun.FromArgs(args, cts);
 
-        IDevice? lastDevice = null;
         huddlySdk.DeviceConnected += async (o, e) =>
         {
             if (!(e.Device is { Model: DeviceModel.Crew } and IMultiCameraDevice))
@@ -33,10 +36,13 @@ internal class Program
                 return;
             }
 
+            if (!run.ShouldHandleDevice())
+            {
+                return;
+            }
+
             // Crew devices support most normal IDevice methods as seen in the other samples.
             // In addition, it has an API that is unique for only multicamera devices, which is demonstrated here
-
-            lastDevice = e.Device;
 
             var crewDevice = (IMultiCameraDevice)e.Device;
             var connectedCamerasResult = await crewDevice.GetConnectedCameras(cts.Token);
@@ -45,26 +51,24 @@ internal class Program
                 Console.WriteLine(
                     $"Failed getting connected cameras: {connectedCamerasResult.Message}"
                 );
-                return;
             }
-            var crewCameraStatuses = connectedCamerasResult.Value;
-            Console.WriteLine($"Crew system with the following cameras connected:");
-            foreach (var cameraStatus in crewCameraStatuses)
+            else
             {
-                Console.WriteLine(
-                    $"\tSerial: {cameraStatus.Serial}, Type: {cameraStatus.Type}, "
-                        + $"Availability: {cameraStatus.Availability}"
-                );
+                var crewCameraStatuses = connectedCamerasResult.Value;
+                Console.WriteLine($"Crew system with the following cameras connected:");
+                foreach (var cameraStatus in crewCameraStatuses)
+                {
+                    Console.WriteLine(
+                        $"\tSerial: {cameraStatus.Serial}, Type: {cameraStatus.Type}, "
+                            + $"Availability: {cameraStatus.Availability}"
+                    );
+                }
             }
+
+            run.Complete(connectedCamerasResult.IsSuccess);
         };
         huddlySdk.DeviceDisconnected += (o, e) =>
-        {
             Console.WriteLine($"Device {e.Device.Id} disconnected");
-            if (e.Device.Id == lastDevice?.Id)
-            {
-                lastDevice = null;
-            }
-        };
 
         Console.WriteLine("\n\nPress Control+C to quit the sample.\n\n");
         Console.CancelKeyPress += (sender, eventArgs) =>
@@ -75,5 +79,7 @@ internal class Program
         };
 
         await huddlySdk.StartMonitoring(ct: cts.Token);
+        await run.WaitUntilCancelled();
+        return run.ExitCode;
     }
 }

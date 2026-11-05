@@ -5,7 +5,8 @@ namespace Upgrade;
 
 public class UpgradeRunner
 {
-    public static async Task UpgradeDeviceIfNewVersionIsAvailable(
+    // Returns false if anything went wrong; "already up to date" counts as success.
+    public static async Task<bool> UpgradeDeviceIfNewVersionIsAvailable(
         IDevice device,
         CancellationToken ct
     )
@@ -21,7 +22,7 @@ public class UpgradeRunner
             Console.WriteLine(
                 $"Failed retrieving latest firmware version: {errorMessage}. Aborting."
             );
-            return;
+            return false;
         }
         var remoteFirmwareInfo = remoteFirmwareInfoResult.Value;
         Console.WriteLine(
@@ -37,7 +38,7 @@ public class UpgradeRunner
             Console.WriteLine(
                 $"Failed retrieving device firmware version: {errorMessage}. Aborting."
             );
-            return;
+            return false;
         }
         var deviceFirmwareVersion = deviceFirmwareVersionResult.Value;
         if (deviceFirmwareVersion >= remoteFirmwareInfo.FirmwareVersion)
@@ -45,13 +46,13 @@ public class UpgradeRunner
             Console.WriteLine(
                 "Latest firmware release is not greater than the current device firmware."
             );
-            return;
+            return true;
         }
         Console.WriteLine(
             "Latest firmware release is greater than the current device firmware. Proceeding with upgrade."
         );
 
-        var httpClient = new HttpClient();
+        using var httpClient = new HttpClient();
         using HttpResponseMessage response = await httpClient.GetAsync(
             remoteFirmwareInfo.DownloadUrl,
             HttpCompletionOption.ResponseHeadersRead,
@@ -60,6 +61,7 @@ public class UpgradeRunner
         if (!response.IsSuccessStatusCode)
         {
             Console.WriteLine("Failed trying to download firmware. Aborting.");
+            return false;
         }
 
         var firmwareFilePath = Path.GetTempFileName();
@@ -98,10 +100,11 @@ public class UpgradeRunner
             if (!upgradeResult.IsSuccess)
             {
                 Console.WriteLine($"Upgrade failed: {upgradeResult.Message}");
-                return;
+                return false;
             }
 
             Console.WriteLine("Successfully upgraded device!");
+            return true;
         }
         finally
         {

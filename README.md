@@ -37,25 +37,27 @@ using var huddlySdk = new Sdk(new NullLoggerFactory(), [usbMonitor, ipMonitor]);
 After creating an ISdk instance, add appropriate listeners for device connect/disconnect events:
 
 ```csharp
-huddlySdk.DeviceConnected += async (sender, eventArgs) =>
+huddlySdk.DeviceConnected += (sender, eventArgs) =>
 {
     Console.WriteLine($"Device {eventArgs.Device.Model} connected");
-}
+};
 
-huddlySdk.DeviceConnected += async (sender, eventArgs) =>
+huddlySdk.DeviceDisconnected += (sender, eventArgs) =>
 {
     Console.WriteLine($"Device {eventArgs.Device.Model} disconnected");
-}
+};
 ```
 
 Then start monitoring
 
 ```csharp
 CancellationTokenSource cts = new CancellationTokenSource();
-huddlySdk.StartMonitoring(cts.Token)
+await huddlySdk.StartMonitoring(ct: cts.Token);
 ```
 
 If you have Huddly devices connected, you should now start getting connection events for them. Note that there can be some delay, particularly for IP devices.
+
+`StartMonitoring` returns once monitoring has started, and devices keep being reported through the events until `cts` is cancelled. A console app therefore has to keep running after it, for example until Control+C, as the samples do.
 
 ### USB Proxy
 
@@ -112,3 +114,25 @@ result.ThrowIfError();
 Result<FramingMode> result = await device.GetFramingMode();
 FramingMode currentFramingMode = result.GetValueOrThrow();
 ```
+
+## Running the samples
+
+On Linux, install libusb first, which the SDK needs to find USB cameras (`sudo apt-get install libusb-1.0-0-dev` on Debian and Ubuntu).
+
+Each sample is a console app that keeps running until you press Control+C:
+
+```
+dotnet run --project CameraInfo
+```
+
+Pass `--once` to handle only the first device that connects and then exit. The exit code is `0` if everything the sample demonstrates succeeded, and `1` on any failure, including no suitable device connecting within two minutes:
+
+```
+dotnet run --project CameraInfo -- --once
+```
+
+Note that `Upgrade --once` really upgrades the device when a newer firmware release is available, and `Crew` needs a Crew system. `--timeout <seconds>` changes how long `--once` waits for a device; once one connects, the sample takes as long as its work needs. Any other argument, or a bad `--timeout`, exits with code `2`. Both options are handled in `Shared/SampleRun.cs`, which every sample includes (through `Directory.Build.props`), so each sample's `Program.cs` only shows how the SDK is used.
+
+### SDK versions and tags
+
+The samples always use one Huddly.Sdk version, set in `Directory.Packages.props`. On every Huddly.Sdk release, the SDK's own pipeline runs the samples (all except Crew and Upgrade) with `--once` against the new version on a real camera; only if they all pass, the samples are moved to that version and the commit is tagged with the release tag (e.g. `v2.38.0`). Check out that tag to get the samples that match the SDK version you use.
