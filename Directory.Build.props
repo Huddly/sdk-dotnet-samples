@@ -1,0 +1,17 @@
+<Project>
+
+  <!-- Shared by every sample. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- How a sample runs (the once and timeout options). -->
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Shared\SampleRun.cs" Link="Shared\SampleRun.cs" />
+  </ItemGroup>
+
+</Project>

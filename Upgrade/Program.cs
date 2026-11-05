@@ -1,12 +1,15 @@
 ﻿using Huddly.Sdk;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Samples.Shared;
 
 namespace Upgrade;
 
 internal class Program
 {
-    static async Task Main(string[] _)
+    // Note that this really upgrades the device when a newer firmware release exists, also with
+    // --once ("already up to date" counts as success).
+    static async Task<int> Main(string[] args)
     {
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Debug));
@@ -17,16 +20,18 @@ internal class Program
             configure.UseIpDeviceMonitor();
         });
 
-        var sp = services.BuildServiceProvider();
-
-        // Should always be disposed after use
-        using var huddlySdk = sp.GetRequiredService<ISdk>();
+        // The ISdk should always be disposed after use. It is created by the service provider, so
+        // disposing the provider disposes it (and flushes the console logger).
+        using var sp = services.BuildServiceProvider();
+        var huddlySdk = sp.GetRequiredService<ISdk>();
         var cts = new CancellationTokenSource();
+        // --once / --timeout handling, see Shared/SampleRun.cs. This sample upgrades only the first
+        // device that connects, also without --once.
+        var run = SampleRun.FromArgs(args, cts, onlyFirstDevice: true);
 
-        var numDevicesConnected = 0;
         huddlySdk.DeviceConnected += async (sender, eventArgs) =>
         {
-            if (numDevicesConnected++ > 0)
+            if (!run.ShouldHandleDevice())
             {
                 Console.WriteLine(
                     "Only running upgrade for the first device connected. Discarding connection event."
@@ -37,7 +42,12 @@ internal class Program
             IDevice device = eventArgs.Device;
             Console.WriteLine($"{device.Id} connected");
 
-            await UpgradeRunner.UpgradeDeviceIfNewVersionIsAvailable(eventArgs.Device, cts.Token);
+            var success = await UpgradeRunner.UpgradeDeviceIfNewVersionIsAvailable(
+                device,
+                cts.Token
+            );
+
+            run.Complete(success);
         };
 
         Console.WriteLine(
@@ -52,5 +62,7 @@ internal class Program
         };
 
         await huddlySdk.StartMonitoring(ct: cts.Token);
+        await run.WaitUntilCancelled();
+        return run.ExitCode;
     }
 }
